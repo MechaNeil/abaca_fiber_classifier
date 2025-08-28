@@ -1,0 +1,424 @@
+import 'package:flutter/material.dart';
+import 'dart:io';
+import '../../domain/entities/classification_result.dart';
+
+class ClassificationResultsPage extends StatefulWidget {
+  final String imagePath;
+  final ClassificationResult? result;
+  final List<String>? labels;
+  final bool isError;
+  final VoidCallback? onRetakePhoto;
+  final VoidCallback? onNewClassification;
+
+  const ClassificationResultsPage({
+    super.key,
+    required this.imagePath,
+    this.result,
+    this.labels,
+    this.isError = false,
+    this.onRetakePhoto,
+    this.onNewClassification,
+  });
+
+  @override
+  State<ClassificationResultsPage> createState() =>
+      _ClassificationResultsPageState();
+}
+
+class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
+  bool _isExpanded = false; // State to track if grade distribution is expanded
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Results',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  // Image Display
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey[100],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: widget.imagePath.startsWith('assets/')
+                          ? Image.asset(
+                              widget.imagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              },
+                            )
+                          : Image.file(
+                              File(widget.imagePath),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Results or Error Content
+                  if (widget.isError) ...[
+                    // Error State
+                    const Icon(Icons.warning, size: 60, color: Colors.amber),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "We couldn't classify\nthe fiber",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Please make sure the photo is clear,\nwell-lit, and shows an abaca fiber",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Follow the Classification Guide for best results",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    ),
+                  ] else if (widget.result != null) ...[
+                    // Success State
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'GRADE ${widget.result!.predictedLabel.toUpperCase()}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Confidence
+                    Text(
+                      'Confidence: ${(widget.result!.confidence * 100).toInt()}%',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Grade Distribution
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isExpanded = !_isExpanded;
+                              });
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Grade Distribution',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _isExpanded ? 'Show less' : 'Show all',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    AnimatedRotation(
+                                      turns: _isExpanded ? 0.5 : 0.0,
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      child: Icon(
+                                        Icons.keyboard_arrow_up,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Grade bars
+                          if (widget.result!.probabilities.isNotEmpty) ...[
+                            _buildAllGradeBars(
+                              widget.result!.probabilities,
+                              widget.labels,
+                              _isExpanded,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Timestamp
+                    Text(
+                      'March 15, 2025, 3:30 PM',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom Buttons
+          Container(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: widget.isError
+                        ? widget.onRetakePhoto
+                        : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: Text(
+                      widget.isError ? 'View Guide' : 'Done',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: widget.isError
+                        ? widget.onRetakePhoto
+                        : widget.onNewClassification,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.isError ? 'Retake Photo' : 'New',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAllGradeBars(
+    List<double> probabilities,
+    List<String>? modelLabels,
+    bool showAll,
+  ) {
+    // Use model labels if available, otherwise fall back to default grades
+    final List<String> allGrades =
+        modelLabels ?? ['EF', 'G', 'H', 'I', 'JK', 'M1', 'S2', 'S3'];
+
+    // Define colors for different grades
+    final Map<String, Color> gradeColors = {
+      'EF': Colors.purple,
+      'G': Colors.orange,
+      'H': Colors.red,
+      'I': Colors.pink,
+      'JK': Colors.blue,
+      'M1': Colors.teal,
+      'S2': Colors.green,
+      'S3': Colors.lightGreen,
+    };
+
+    // Create a list of grade-probability pairs and sort by probability (highest first)
+    List<MapEntry<String, double>> gradeProbs = [];
+    for (int i = 0; i < allGrades.length && i < probabilities.length; i++) {
+      gradeProbs.add(MapEntry(allGrades[i], probabilities[i]));
+    }
+
+    // Sort by probability (descending order)
+    gradeProbs.sort((a, b) => b.value.compareTo(a.value));
+
+    // Filter based on showAll flag
+    if (showAll) {
+      // Show all 8 grades regardless of probability
+      // Keep all grades that have corresponding probabilities
+      gradeProbs = gradeProbs.take(8).toList();
+
+      // If we have fewer than 8 grades, pad with remaining grades at 0% probability
+      if (gradeProbs.length < 8) {
+        final existingGrades = gradeProbs.map((e) => e.key).toSet();
+        final remainingGrades = allGrades
+            .where((grade) => !existingGrades.contains(grade))
+            .toList();
+
+        for (
+          int i = 0;
+          i < remainingGrades.length && gradeProbs.length < 8;
+          i++
+        ) {
+          gradeProbs.add(MapEntry(remainingGrades[i], 0.0));
+        }
+      }
+    } else {
+      // Show only top 4 grades
+      gradeProbs = gradeProbs.take(4).toList();
+    }
+
+    return Column(
+      children: [
+        for (int i = 0; i < gradeProbs.length; i++) ...[
+          _buildGradeBar(
+            gradeProbs[i].key,
+            gradeProbs[i].value,
+            gradeColors[gradeProbs[i].key] ?? Colors.grey,
+          ),
+          if (i < gradeProbs.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGradeBar(String grade, double probability, Color color) {
+    final percentage = (probability * 100)
+        .round(); // Use round() for better accuracy
+    return Row(
+      children: [
+        SizedBox(
+          width: 24, // Slightly wider to accommodate longer grade names
+          child: Text(
+            grade,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 20,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: probability.clamp(0.0, 1.0), // Ensure valid range
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 35, // Slightly wider for 3-digit percentages
+          child: Text(
+            '$percentage%',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
+  }
+}
