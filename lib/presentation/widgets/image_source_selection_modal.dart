@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-class ImageSourceSelectionModal extends StatelessWidget {
+class ImageSourceSelectionModal extends StatefulWidget {
   final Function(String imagePath) onImageSelected;
 
   const ImageSourceSelectionModal({super.key, required this.onImageSelected});
 
-  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+  @override
+  State<ImageSourceSelectionModal> createState() =>
+      _ImageSourceSelectionModalState();
+}
+
+class _ImageSourceSelectionModalState extends State<ImageSourceSelectionModal> {
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -14,11 +20,15 @@ class ImageSourceSelectionModal extends StatelessWidget {
         imageQuality: 85,
       );
 
+      if (!mounted) return;
+
       if (image != null) {
         Navigator.of(context).pop(); // Close modal
-        onImageSelected(image.path);
+        widget.onImageSelected(image.path);
       }
     } catch (e) {
+      if (!mounted) return;
+
       Navigator.of(context).pop(); // Close modal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -70,7 +80,7 @@ class ImageSourceSelectionModal extends StatelessWidget {
               children: [
                 // Camera option
                 InkWell(
-                  onTap: () => _pickImage(context, ImageSource.camera),
+                  onTap: () => _pickImage(ImageSource.camera),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: double.infinity,
@@ -112,7 +122,7 @@ class ImageSourceSelectionModal extends StatelessWidget {
 
                 // Gallery option
                 InkWell(
-                  onTap: () => _pickImage(context, ImageSource.gallery),
+                  onTap: () => _pickImage(ImageSource.gallery),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: double.infinity,

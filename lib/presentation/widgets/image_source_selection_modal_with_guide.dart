@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'camera_with_guide_overlay.dart';
 
-class ImageSourceSelectionModalWithGuide extends StatelessWidget {
+class ImageSourceSelectionModalWithGuide extends StatefulWidget {
   final Function(String imagePath) onImageSelected;
 
   const ImageSourceSelectionModalWithGuide({
@@ -10,7 +10,14 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
     required this.onImageSelected,
   });
 
-  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+  @override
+  State<ImageSourceSelectionModalWithGuide> createState() =>
+      _ImageSourceSelectionModalWithGuideState();
+}
+
+class _ImageSourceSelectionModalWithGuideState
+    extends State<ImageSourceSelectionModalWithGuide> {
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -18,11 +25,15 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
         imageQuality: 85,
       );
 
+      if (!mounted) return;
+
       if (image != null) {
         Navigator.of(context).pop(); // Close modal
-        onImageSelected(image.path);
+        widget.onImageSelected(image.path);
       }
     } catch (e) {
+      if (!mounted) return;
+
       Navigator.of(context).pop(); // Close modal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -33,7 +44,7 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
     }
   }
 
-  void _showFullGuide(BuildContext context) {
+  void _showFullGuide() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const ClassificationGuidePage()),
     );
@@ -108,7 +119,7 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => _showFullGuide(context),
+                    onPressed: () => _showFullGuide(),
                     child: const Text(
                       'View Guide',
                       style: TextStyle(
@@ -131,7 +142,7 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
               children: [
                 // Camera option
                 InkWell(
-                  onTap: () => _pickImage(context, ImageSource.camera),
+                  onTap: () => _pickImage(ImageSource.camera),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: double.infinity,
@@ -180,7 +191,7 @@ class ImageSourceSelectionModalWithGuide extends StatelessWidget {
 
                 // Gallery option
                 InkWell(
-                  onTap: () => _pickImage(context, ImageSource.gallery),
+                  onTap: () => _pickImage(ImageSource.gallery),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: double.infinity,
