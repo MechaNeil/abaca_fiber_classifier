@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 class LoadingIndicatorWidget extends StatelessWidget {
   final bool isVisible;
 
-  const LoadingIndicatorWidget({Key? key, required this.isVisible})
-    : super(key: key);
+  const LoadingIndicatorWidget({super.key, required this.isVisible});
 
   @override
   Widget build(BuildContext context) {

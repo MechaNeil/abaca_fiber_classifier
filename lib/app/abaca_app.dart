@@ -11,7 +11,7 @@ import '../presentation/viewmodels/classification_view_model.dart';
 import '../presentation/pages/classification_page.dart';
 
 class AbacaApp extends StatefulWidget {
-  const AbacaApp({Key? key}) : super(key: key);
+  const AbacaApp({super.key});
 
   @override
   State<AbacaApp> createState() => _AbacaAppState();

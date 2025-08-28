@@ -10,8 +10,7 @@ import '../widgets/model_info_widget.dart';
 class ClassificationPage extends StatefulWidget {
   final ClassificationViewModel viewModel;
 
-  const ClassificationPage({Key? key, required this.viewModel})
-    : super(key: key);
+  const ClassificationPage({super.key, required this.viewModel});
 
   @override
   State<ClassificationPage> createState() => _ClassificationPageState();
