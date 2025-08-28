@@ -360,12 +360,6 @@ class _ClassificationPageWithAuthState
                 scrollDirection: Axis.horizontal,
                 itemCount: 3,
                 itemBuilder: (context, index) {
-                  final List<String> placeholderImages = [
-                    'assets/110_206_left.jpg',
-                    'assets/54_109_centerG.jpg',
-                    'assets/110_206_left.jpg',
-                  ];
-
                   return Container(
                     width: 80,
                     margin: const EdgeInsets.only(right: 12),
@@ -375,19 +369,13 @@ class _ClassificationPageWithAuthState
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        placeholderImages[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[300],
-                            child: Icon(
-                              Icons.image,
-                              color: Colors.grey[500],
-                              size: 30,
-                            ),
-                          );
-                        },
+                      child: Container(
+                        color: Colors.grey[300],
+                        child: Icon(
+                          Icons.image,
+                          color: Colors.grey[500],
+                          size: 30,
+                        ),
                       ),
                     ),
                   );
