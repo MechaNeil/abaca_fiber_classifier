@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/classification_view_model.dart';
-import '../widgets/image_source_selection_modal.dart';
+import '../widgets/image_source_selection_modal_with_guide.dart';
+import '../widgets/camera_with_guide_overlay.dart';
 import 'classification_results_page.dart';
 import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 
@@ -75,11 +76,17 @@ class _ClassificationPageWithAuthState
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ImageSourceSelectionModal(
+      builder: (context) => ImageSourceSelectionModalWithGuide(
         onImageSelected: (imagePath) {
           _classifyImage(imagePath);
         },
       ),
+    );
+  }
+
+  void _showClassificationGuide() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ClassificationGuidePage()),
     );
   }
 
@@ -295,6 +302,42 @@ class _ClassificationPageWithAuthState
                       'Classify New',
                       style: TextStyle(
                         color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // View Guide Button
+            SizedBox(
+              width: 200,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _showClassificationGuide,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.green[400]!),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.help_outline,
+                      color: Colors.green[700],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'View Guide',
+                      style: TextStyle(
+                        color: Colors.green[700],
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
