@@ -97,9 +97,9 @@ class _ImageSourceSelectionModalWithGuideState
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.lightbulb, color: Colors.green, size: 24),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  Icon(Icons.lightbulb, color: Colors.green, size: 24),
+                  SizedBox(width: 12),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -118,8 +118,10 @@ class _ImageSourceSelectionModalWithGuideState
                       ],
                     ),
                   ),
+                  // TextButton cannot be const because it uses a non-const onPressed
+                  // So we keep it non-const
                   TextButton(
-                    onPressed: () => _showFullGuide(),
+                    onPressed: _showFullGuide,
                     child: const Text(
                       'View Guide',
                       style: TextStyle(

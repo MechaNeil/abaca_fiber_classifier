@@ -1,5 +1,6 @@
 import '../entities/user.dart';
 import '../repositories/auth_repository.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 /// Use case for user registration
 ///
@@ -44,12 +45,15 @@ class RegisterUserUseCase {
       throw Exception('Password must be at least 6 characters long');
     }
 
+    // Hash the password using bcrypt
+    final hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
     // Create user object
     final user = User(
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       username: username.trim().toLowerCase(),
-      password: password, // In production, hash this password
+      password: hashedPassword,
       createdAt: DateTime.now(),
     );
 

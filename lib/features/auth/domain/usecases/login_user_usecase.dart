@@ -14,7 +14,7 @@ class LoginUserUseCase {
   ///
   /// Parameters:
   /// - [username]: User's username
-  /// - [password]: User's password
+  /// - [password]: User's password (plain text)
   ///
   /// Returns: [User] object if login successful, null otherwise
   ///
@@ -31,10 +31,10 @@ class LoginUserUseCase {
       throw Exception('Password cannot be empty');
     }
 
-    // Attempt login
+    // Pass plain text password to repository for bcrypt verification
     return await _authRepository.loginUser(
       username.trim().toLowerCase(),
-      password, // In production, hash this password before comparison
+      password, // Plain text password - repository will verify against stored hash
     );
   }
 }

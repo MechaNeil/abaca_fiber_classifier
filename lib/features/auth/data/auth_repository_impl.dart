@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:bcrypt/bcrypt.dart';
 import '../domain/entities/user.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'database_service.dart';
@@ -23,7 +24,7 @@ import 'database_service.dart';
 /// final userId = await authRepo.registerUser(user);
 ///
 /// // Login user
-/// final loggedInUser = await authRepo.loginUser('johndoe', 'hashedPassword');
+/// final loggedInUser = await authRepo.loginUser('johndoe', 'plainPassword');
 /// ```
 class AuthRepositoryImpl implements AuthRepository {
   final DatabaseService _databaseService = DatabaseService.instance;
@@ -57,7 +58,7 @@ class AuthRepositoryImpl implements AuthRepository {
   ///
   /// Parameters:
   /// - [username]: The user's username
-  /// - [password]: The user's password (should be hashed)
+  /// - [password]: The user's password (plain text - will be verified against stored hash)
   ///
   /// Returns: [User] object if authentication successful, null otherwise
   @override
@@ -66,13 +67,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final result = await db.query(
       'users',
-      where: 'username = ? AND password = ?',
-      whereArgs: [username, password],
+      where: 'username = ?',
+      whereArgs: [username],
       limit: 1,
     );
 
     if (result.isNotEmpty) {
-      return User.fromMap(result.first);
+      final userMap = result.first;
+      final storedHashedPassword = userMap['password'] as String;
+      if (BCrypt.checkpw(password, storedHashedPassword)) {
+        return User.fromMap(userMap);
+      }
     }
     return null;
   }
