@@ -29,6 +29,19 @@ class ClassificationResultsPage extends StatefulWidget {
 class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
   bool _isExpanded = false; // State to track if grade distribution is expanded
 
+  String _formatTimestamp(DateTime dateTime) {
+    // You need to add intl package to your pubspec.yaml: intl: ^0.18.0
+    // import 'package:intl/intl.dart';
+    return '${dateTime.month}/${dateTime.day}/${dateTime.year}, ${_formatTime(dateTime)}';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
+    final ampm = dateTime.hour >= 12 ? 'PM' : 'AM';
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $ampm';
+  }
+
   void _showClassificationGuide() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const ClassificationGuidePage()),
@@ -335,7 +348,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     // Timestamp
                     Text(
-                      'March 15, 2025, 3:30 PM',
+                      _formatTimestamp(DateTime.now()),
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],

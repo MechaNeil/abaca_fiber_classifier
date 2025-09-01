@@ -93,10 +93,16 @@ void main() {
         final confidence = testCase['confidence'] as double;
         final shouldShowError = testCase['shouldShowError'] as bool;
 
+        // Distribute the remaining probability evenly among the other 7 classes
+        final remaining = 1.0 - confidence;
+        final otherProb = remaining / 7;
+        final probabilities = List<double>.filled(8, otherProb);
+        probabilities[1] = confidence; // index 1 for 'G'
+
         final result = ClassificationResult(
           predictedLabel: 'G',
           confidence: confidence,
-          probabilities: [0.1, confidence, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+          probabilities: probabilities,
         );
 
         // Test the validation logic: confidence ≤ 0.5 should trigger error state
