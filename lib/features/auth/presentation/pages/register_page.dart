@@ -3,7 +3,6 @@ import '../viewmodels/auth_view_model.dart';
 import '../widgets/custom_input_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/logo_placeholder.dart';
-import 'login_page.dart';
 
 /// Registration page widget
 ///
@@ -30,6 +29,10 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
     widget.viewModel.addListener(_onViewModelChanged);
+    // Defer clearing errors until after the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.viewModel.clearAllErrors();
+    });
   }
 
   @override
@@ -63,9 +66,11 @@ class _RegisterPageState extends State<RegisterPage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              widget.viewModel.resetRegistrationState();
-              _navigateToLogin();
+              Navigator.of(context).pop(); // Close dialog
+              // Reset all auth state to ensure clean state for login
+              widget.viewModel.resetAllAuthState();
+              // Pop all routes and go back to auth wrapper which will show login
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: const Text('OK'),
           ),
@@ -86,11 +91,9 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _navigateToLogin() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => LoginPage(viewModel: widget.viewModel),
-      ),
-    );
+    // Clear all auth state and pop back to auth wrapper
+    widget.viewModel.resetAllAuthState();
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   void _register() {

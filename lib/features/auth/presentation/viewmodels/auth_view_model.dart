@@ -117,20 +117,76 @@ class AuthViewModel extends ChangeNotifier {
 
   /// Clears registration error
   void clearRegistrationError() {
-    _registrationError = null;
-    notifyListeners();
+    if (_registrationError != null) {
+      _registrationError = null;
+      notifyListeners();
+    }
   }
 
   /// Clears login error
   void clearLoginError() {
-    _loginError = null;
-    notifyListeners();
+    if (_loginError != null) {
+      _loginError = null;
+      notifyListeners();
+    }
   }
 
   /// Resets registration state
   void resetRegistrationState() {
+    bool shouldNotify = false;
+
+    if (_registrationError != null) {
+      _registrationError = null;
+      shouldNotify = true;
+    }
+
+    if (_registrationSuccess != false) {
+      _registrationSuccess = false;
+      shouldNotify = true;
+    }
+
+    if (shouldNotify) {
+      notifyListeners();
+    }
+  }
+
+  /// Resets all authentication state
+  ///
+  /// This method clears all authentication-related state including
+  /// login status, errors, and registration state. It's useful when
+  /// navigating between auth pages or when you want to ensure a
+  /// clean state after registration.
+  void resetAllAuthState() {
+    _loggedInUser = null;
+    _isRegistering = false;
+    _isLoggingIn = false;
     _registrationError = null;
+    _loginError = null;
     _registrationSuccess = false;
+    // Only call notifyListeners once after all state changes
     notifyListeners();
+  }
+
+  /// Clears all form states and errors
+  ///
+  /// This method is specifically designed to be called after successful
+  /// registration to ensure the login page starts with a clean state.
+  void clearAllErrors() {
+    bool shouldNotify = false;
+
+    if (_registrationError != null) {
+      _registrationError = null;
+      shouldNotify = true;
+    }
+
+    if (_loginError != null) {
+      _loginError = null;
+      shouldNotify = true;
+    }
+
+    // Only notify if there were actually changes
+    if (shouldNotify) {
+      notifyListeners();
+    }
   }
 }

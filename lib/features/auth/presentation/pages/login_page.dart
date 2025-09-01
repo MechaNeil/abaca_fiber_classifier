@@ -28,6 +28,18 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     widget.viewModel.addListener(_onViewModelChanged);
+    // Clear form fields to ensure fresh start
+    _clearFormFields();
+    // Defer clearing errors until after the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.viewModel.clearAllErrors();
+    });
+  }
+
+  /// Clears all form fields
+  void _clearFormFields() {
+    _usernameController.clear();
+    _passwordController.clear();
   }
 
   @override
@@ -61,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToRegister() {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterPage(viewModel: widget.viewModel),
       ),
