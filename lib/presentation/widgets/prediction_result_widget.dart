@@ -4,8 +4,7 @@ import '../../domain/entities/classification_result.dart';
 class PredictionResultWidget extends StatelessWidget {
   final ClassificationResult? result;
 
-  const PredictionResultWidget({Key? key, required this.result})
-    : super(key: key);
+  const PredictionResultWidget({super.key, required this.result});
 
   @override
   Widget build(BuildContext context) {

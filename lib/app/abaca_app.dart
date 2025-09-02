@@ -8,10 +8,15 @@ import '../services/ml_service.dart';
 import '../services/image_picker_service.dart';
 import '../services/asset_loader_service.dart';
 import '../presentation/viewmodels/classification_view_model.dart';
-import '../presentation/pages/classification_page.dart';
+import '../presentation/pages/classification_page_with_auth.dart';
+import '../features/auth/data/auth_repository_impl.dart';
+import '../features/auth/domain/usecases/register_user_usecase.dart';
+import '../features/auth/domain/usecases/login_user_usecase.dart';
+import '../features/auth/presentation/viewmodels/auth_view_model.dart';
+import '../features/auth/presentation/pages/auth_wrapper.dart';
 
 class AbacaApp extends StatefulWidget {
-  const AbacaApp({Key? key}) : super(key: key);
+  const AbacaApp({super.key});
 
   @override
   State<AbacaApp> createState() => _AbacaAppState();
@@ -20,6 +25,8 @@ class AbacaApp extends StatefulWidget {
 class _AbacaAppState extends State<AbacaApp> {
   late final ClassificationRepositoryImpl _repository;
   late final ClassificationViewModel _viewModel;
+  late final AuthRepositoryImpl _authRepository;
+  late final AuthViewModel _authViewModel;
 
   @override
   void initState() {
@@ -28,28 +35,41 @@ class _AbacaAppState extends State<AbacaApp> {
   }
 
   void _initializeDependencies() {
-    // Initialize services
+    // Initialize classification services
     final mlService = MLService();
     final imagePickerService = ImagePickerService();
     final assetLoaderService = AssetLoaderService();
 
-    // Initialize repository
+    // Initialize classification repository
     _repository = ClassificationRepositoryImpl(
       mlService: mlService,
       imagePickerService: imagePickerService,
       assetLoaderService: assetLoaderService,
     );
 
-    // Initialize use cases
+    // Initialize classification use cases
     final initializeModelUseCase = InitializeModelUseCase(_repository);
     final pickImageUseCase = PickImageUseCase(_repository);
     final classifyImageUseCase = ClassifyImageUseCase(_repository);
 
-    // Initialize view model
+    // Initialize classification view model
     _viewModel = ClassificationViewModel(
       initializeModelUseCase: initializeModelUseCase,
       pickImageUseCase: pickImageUseCase,
       classifyImageUseCase: classifyImageUseCase,
+    );
+
+    // Initialize auth repository
+    _authRepository = AuthRepositoryImpl();
+
+    // Initialize auth use cases
+    final registerUserUseCase = RegisterUserUseCase(_authRepository);
+    final loginUserUseCase = LoginUserUseCase(_authRepository);
+
+    // Initialize auth view model
+    _authViewModel = AuthViewModel(
+      registerUserUseCase: registerUserUseCase,
+      loginUserUseCase: loginUserUseCase,
     );
   }
 
@@ -65,7 +85,13 @@ class _AbacaAppState extends State<AbacaApp> {
     return MaterialApp(
       title: AppConstants.appTitle,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
-      home: ClassificationPage(viewModel: _viewModel),
+      home: AuthWrapper(
+        authViewModel: _authViewModel,
+        mainAppBuilder: (authViewModel) => ClassificationPageWithAuth(
+          viewModel: _viewModel,
+          authViewModel: authViewModel,
+        ),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -5,8 +5,7 @@ import '../../core/constants/app_constants.dart';
 class ImageDisplayWidget extends StatelessWidget {
   final String? imagePath;
 
-  const ImageDisplayWidget({Key? key, required this.imagePath})
-    : super(key: key);
+  const ImageDisplayWidget({super.key, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {

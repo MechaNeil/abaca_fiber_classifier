@@ -114,6 +114,41 @@ class ClassificationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> classifyImageFromPath(String imagePath) async {
+    if (!_isModelInitialized) {
+      _setError('Model not initialized');
+      return;
+    }
+
+    _setLoading(true);
+    _clearError();
+    _clearResults();
+
+    try {
+      _imagePath = imagePath;
+      notifyListeners();
+
+      // Classify image
+      final result = await _classifyImageUseCase(imagePath, _labels);
+      _classificationResult = result;
+
+      // Generate Python-style output for debugging
+      _pythonStyleOutput = ImageUtils.formatPythonTuple(
+        result.predictedLabel,
+        result.confidence,
+        result.probabilities,
+      );
+
+      // Print to console for verification
+      debugPrint(_pythonStyleOutput);
+    } catch (e) {
+      _setError('Classification failed: $e');
+      debugPrint('Classification error: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();

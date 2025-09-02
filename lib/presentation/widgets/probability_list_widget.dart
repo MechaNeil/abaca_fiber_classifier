@@ -7,10 +7,10 @@ class ProbabilityListWidget extends StatelessWidget {
   final List<double>? probabilities;
 
   const ProbabilityListWidget({
-    Key? key,
+    super.key,
     required this.labels,
     required this.probabilities,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

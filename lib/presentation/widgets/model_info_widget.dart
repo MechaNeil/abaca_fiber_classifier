@@ -4,7 +4,7 @@ import '../../domain/entities/model_info.dart';
 class ModelInfoWidget extends StatelessWidget {
   final ModelInfo? modelInfo;
 
-  const ModelInfoWidget({Key? key, required this.modelInfo}) : super(key: key);
+  const ModelInfoWidget({super.key, required this.modelInfo});
 
   @override
   Widget build(BuildContext context) {
