@@ -109,27 +109,5 @@ class DatabaseService {
     }
   }
 
-  /// Deletes the entire database
-  ///
-  /// This method completely removes the database file from the device.
-  /// Use with caution as this operation cannot be undone.
-  ///
-  /// Returns: true if the database was successfully deleted
-  ///
-  /// [isAdmin] should be true if the caller has administrative privileges.
-  Future<bool> deleteDatabase({required bool isAdmin}) async {
-    if (!isAdmin) {
-      // You can throw an exception or return false if not authorized
-      throw Exception('Unauthorized: Admin privileges required to delete database.');
-    }
-    try {
-      final dbPath = await getDatabasesPath();
-      final path = join(dbPath, 'abaca_users.db');
-      await databaseFactory.deleteDatabase(path);
-      _database = null;
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  // The deleteDatabase method has been removed for security reasons.
 }
