@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:abaca_prototype_v1/main.dart';
+import 'package:abaca_prototype_v1/app/abaca_app.dart';
 
 void main() {
   testWidgets('App builds and shows pick image button', (
