@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/classification_view_model.dart';
+import '../viewmodels/history_view_model.dart';
 import '../widgets/image_source_selection_modal_with_guide.dart';
 import '../widgets/camera_with_guide_overlay.dart';
+import '../widgets/recent_history_widget.dart';
 import 'classification_results_page.dart';
+import 'history_page.dart';
 import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 
 /// Classification page with authentication support
@@ -12,11 +15,13 @@ import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 class ClassificationPageWithAuth extends StatefulWidget {
   final ClassificationViewModel viewModel;
   final AuthViewModel authViewModel;
+  final HistoryViewModel historyViewModel;
 
   const ClassificationPageWithAuth({
     super.key,
     required this.viewModel,
     required this.authViewModel,
+    required this.historyViewModel,
   });
 
   @override
@@ -100,6 +105,25 @@ class _ClassificationPageWithAuthState
       // Process the image and get classification result
       await widget.viewModel.classifyImageFromPath(imagePath);
 
+      // Save classification to history if successful
+      if (widget.viewModel.classificationResult != null && mounted) {
+        final result = widget.viewModel.classificationResult!;
+        final user = widget.authViewModel.loggedInUser;
+
+        try {
+          await widget.historyViewModel.saveClassification(
+            imagePath: imagePath,
+            predictedLabel: result.predictedLabel,
+            confidence: result.confidence,
+            probabilities: result.probabilities,
+            userId: user?.id,
+          );
+        } catch (e) {
+          // Log error but don't prevent navigation
+          debugPrint('Failed to save classification to history: $e');
+        }
+      }
+
       // Navigate to results page
       if (mounted) {
         Navigator.of(context).push(
@@ -143,11 +167,9 @@ class _ClassificationPageWithAuthState
   }
 
   void _showViewHistory() {
-    // Placeholder for View History functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('View History - Coming Soon!'),
-        duration: Duration(seconds: 2),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => HistoryPage(viewModel: widget.historyViewModel),
       ),
     );
   }
@@ -382,49 +404,7 @@ class _ClassificationPageWithAuthState
             const SizedBox(height: 40),
 
             // Recent Section
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Recent',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Recent Items (Placeholder)
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 3,
-                itemBuilder: (context, index) {
-                  return Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[200],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        color: Colors.grey[300],
-                        child: Icon(
-                          Icons.image,
-                          color: Colors.grey[500],
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            RecentHistoryWidget(historyViewModel: widget.historyViewModel),
           ],
         ),
       ),
