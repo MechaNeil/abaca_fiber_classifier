@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../../domain/entities/classification_result.dart';
 import '../widgets/camera_with_guide_overlay.dart';
+import '../../core/utils/grade_colors.dart';
 
 class ClassificationResultsPage extends StatefulWidget {
   final String imagePath;
@@ -455,16 +456,9 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
     final List<String> allGrades =
         modelLabels ?? ['EF', 'G', 'H', 'I', 'JK', 'M1', 'S2', 'S3'];
 
-    // Define colors for different grades
+    // Define colors for different grades using centralized utility
     final Map<String, Color> gradeColors = {
-      'EF': Colors.purple,
-      'G': Colors.orange,
-      'H': Colors.red,
-      'I': Colors.pink,
-      'JK': Colors.blue,
-      'M1': Colors.teal,
-      'S2': Colors.green,
-      'S3': Colors.lightGreen,
+      for (String grade in allGrades) grade: GradeColors.getGradeColor(grade),
     };
 
     // Create a list of grade-probability pairs and sort by probability (highest first)

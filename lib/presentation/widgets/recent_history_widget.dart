@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../domain/entities/classification_history.dart';
 import '../viewmodels/history_view_model.dart';
 import '../pages/history_page.dart';
+import '../../core/utils/grade_colors.dart';
 
 /// Widget for displaying recent classification history
 ///
@@ -195,7 +196,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                           ),
                           Flexible(
                             child: Text(
-                              history.formattedDate,
+                              history.shortFormattedDate,
                               style: TextStyle(
                                 fontSize: 8,
                                 color: Colors.grey[500],
@@ -291,36 +292,11 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   }
 
   Color _getGradeColor(String grade) {
-    switch (grade.toLowerCase()) {
-      case 'grade_s2':
-        return Colors.green;
-      case 'grade_1':
-        return Colors.orange;
-      case 'grade_jk':
-        return Colors.red;
-      default:
-        return Colors.blue;
-    }
+    return GradeColors.getGradeColor(grade);
   }
 
   String _getShortGradeName(String grade) {
-    switch (grade.toLowerCase()) {
-      case 'grade_s2':
-        return 'S2';
-      case 'grade_1':
-        return '1';
-      case 'grade_jk':
-        return 'JK';
-      default:
-        // Safe substring that handles short strings
-        if (grade.length >= 2) {
-          return grade.substring(0, 2).toUpperCase();
-        } else if (grade.isNotEmpty) {
-          return grade.substring(0, 1).toUpperCase();
-        } else {
-          return '?';
-        }
-    }
+    return GradeColors.getShortGradeName(grade);
   }
 
   void _navigateToHistoryPage() {

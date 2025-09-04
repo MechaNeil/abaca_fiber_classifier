@@ -103,19 +103,61 @@ class ClassificationHistory {
 
   /// Gets the formatted timestamp for display
   String get formattedDate {
+    final month = timestamp.month.toString().padLeft(2, '0');
+    final day = timestamp.day.toString().padLeft(2, '0');
+    final year = timestamp.year;
+    final hour = timestamp.hour;
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
+    return '$month/$day/$year at $displayHour:$minute $amPm';
+  }
+
+  /// Gets a short formatted date for compact display
+  String get shortFormattedDate {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
 
     if (difference.inDays == 0) {
+      // Show time only for today
       final hour = timestamp.hour;
       final minute = timestamp.minute.toString().padLeft(2, '0');
       final amPm = hour >= 12 ? 'PM' : 'AM';
       final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
       return '$displayHour:$minute $amPm';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
     } else {
-      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+      // Show MM/DD for other days
+      final month = timestamp.month.toString().padLeft(2, '0');
+      final day = timestamp.day.toString().padLeft(2, '0');
+      return '$month/$day';
+    }
+  }
+
+  /// Gets a user-friendly relative date with fallback to full date
+  String get friendlyDate {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays == 0) {
+      // Today - show relative time
+      if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } else if (difference.inDays == 1) {
+      // Yesterday - show time
+      final hour = timestamp.hour;
+      final minute = timestamp.minute.toString().padLeft(2, '0');
+      final amPm = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      return 'Yesterday at $displayHour:$minute $amPm';
+    } else {
+      // Older - show full date and time
+      return formattedDate;
     }
   }
 
