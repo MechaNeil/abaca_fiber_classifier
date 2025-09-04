@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../../domain/entities/classification_history.dart';
 import '../viewmodels/history_view_model.dart';
+import '../../core/utils/grade_colors.dart';
 
 /// History page displaying classification history records
 ///
@@ -347,7 +348,7 @@ class _HistoryPageState extends State<HistoryPage>
           ],
         ),
         subtitle: Text(
-          history.formattedDate,
+          history.friendlyDate,
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
         trailing: PopupMenuButton<String>(
@@ -427,30 +428,11 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Color _getGradeColor(String grade) {
-    switch (grade.toLowerCase()) {
-      case 'grade_s2':
-        return Colors.green;
-      case 'grade_1':
-        return Colors.orange;
-      case 'grade_jk':
-        return Colors.red;
-      default:
-        return Colors.blue;
-    }
+    return GradeColors.getGradeColor(grade);
   }
 
   String _formatGradeName(String grade) {
-    if (grade == 'All') return grade;
-    switch (grade.toLowerCase()) {
-      case 'grade_s2':
-        return 'Grade S2';
-      case 'grade_1':
-        return 'Grade 1';
-      case 'grade_jk':
-        return 'Grade JK';
-      default:
-        return grade.toUpperCase();
-    }
+    return GradeColors.formatGradeName(grade);
   }
 
   void _handleMenuAction(String action) {
