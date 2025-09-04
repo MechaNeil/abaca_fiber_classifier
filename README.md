@@ -1,4 +1,4 @@
-# abaca_fiber_classifier
+# Abaca Fiber Classifier
 
 A new Flutter project.
 
