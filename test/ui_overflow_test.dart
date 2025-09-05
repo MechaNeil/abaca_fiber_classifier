@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:abaca_prototype_v1/presentation/pages/classification_results_page.dart';
-import 'package:abaca_prototype_v1/domain/entities/classification_result.dart';
+import 'package:abaca_fiber_classifier/presentation/pages/classification_results_page.dart';
+import 'package:abaca_fiber_classifier/domain/entities/classification_result.dart';
 
 void main() {
   group('UI Overflow Tests', () {
