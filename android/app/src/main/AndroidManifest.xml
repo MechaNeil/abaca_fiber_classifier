@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     
     <application
-        android:label="abaca_prototype_v1"
+        android:label="abaca_fiber_classifier"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:abaca_prototype_v1/domain/entities/classification_history.dart';
+import 'package:abaca_fiber_classifier/domain/entities/classification_history.dart';
 
 void main() {
   group('ClassificationHistory Date Formatting Tests', () {
