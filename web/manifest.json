@@ -1,6 +1,6 @@
 {
-    "name": "abaca_fiber_classifier",
-    "short_name": "abaca_fiber_classifier",
+    "name": "abaca_prototype_v1",
+    "short_name": "abaca_prototype_v1",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
