@@ -40,7 +40,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Increment version for new table
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -49,8 +49,9 @@ class DatabaseService {
   /// Creates the database schema
   ///
   /// This method is called when the database is created for the first time.
-  /// It creates the users table with the following schema:
+  /// It creates the users table and classification_history table with the following schema:
   ///
+  /// Users Table:
   /// | Column    | Type    | Constraints           |
   /// |-----------|---------|----------------------|
   /// | id        | INTEGER | PRIMARY KEY AUTOINCREMENT |
@@ -60,6 +61,17 @@ class DatabaseService {
   /// | password  | TEXT    | NOT NULL             |
   /// | createdAt | INTEGER | NOT NULL             |
   ///
+  /// Classification History Table:
+  /// | Column         | Type    | Constraints           |
+  /// |----------------|---------|----------------------|
+  /// | id             | INTEGER | PRIMARY KEY AUTOINCREMENT |
+  /// | imagePath      | TEXT    | NOT NULL             |
+  /// | predictedLabel | TEXT    | NOT NULL             |
+  /// | confidence     | REAL    | NOT NULL             |
+  /// | probabilities  | TEXT    | NOT NULL             |
+  /// | timestamp      | INTEGER | NOT NULL             |
+  /// | userId         | INTEGER | NULL (foreign key)   |
+  ///
   /// Parameters:
   /// - [db]: The database instance
   /// - [version]: The database version
@@ -67,7 +79,9 @@ class DatabaseService {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
     const textType = 'TEXT NOT NULL';
     const integerType = 'INTEGER NOT NULL';
+    const realType = 'REAL NOT NULL';
 
+    // Create users table
     await db.execute('''
       CREATE TABLE users (
         id $idType,
@@ -78,12 +92,41 @@ class DatabaseService {
         createdAt $integerType
       )
     ''');
+
+    // Create classification history table
+    await db.execute('''
+      CREATE TABLE classification_history (
+        id $idType,
+        imagePath $textType,
+        predictedLabel $textType,
+        confidence $realType,
+        probabilities $textType,
+        timestamp $integerType,
+        userId INTEGER,
+        FOREIGN KEY (userId) REFERENCES users (id)
+      )
+    ''');
+
+    // Create index for better performance on timestamp queries
+    await db.execute('''
+      CREATE INDEX idx_history_timestamp ON classification_history(timestamp DESC)
+    ''');
+
+    // Create index for user-specific queries
+    await db.execute('''
+      CREATE INDEX idx_history_user ON classification_history(userId)
+    ''');
+
+    // Create index for grade-specific queries
+    await db.execute('''
+      CREATE INDEX idx_history_label ON classification_history(predictedLabel)
+    ''');
   }
 
   /// Handles database upgrades
   ///
   /// This method is called when the database version is upgraded.
-  /// You can add migration logic here for future schema changes.
+  /// It handles migration logic for schema changes.
   ///
   /// Parameters:
   /// - [db]: The database instance
@@ -91,10 +134,39 @@ class DatabaseService {
   /// - [newVersion]: The target database version
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     // Handle database migrations here
-    // Example:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE users ADD COLUMN email TEXT');
-    // }
+    if (oldVersion < 2) {
+      // Add classification_history table in version 2
+      const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+      const textType = 'TEXT NOT NULL';
+      const integerType = 'INTEGER NOT NULL';
+      const realType = 'REAL NOT NULL';
+
+      await db.execute('''
+        CREATE TABLE classification_history (
+          id $idType,
+          imagePath $textType,
+          predictedLabel $textType,
+          confidence $realType,
+          probabilities $textType,
+          timestamp $integerType,
+          userId INTEGER,
+          FOREIGN KEY (userId) REFERENCES users (id)
+        )
+      ''');
+
+      // Create indexes for better performance
+      await db.execute('''
+        CREATE INDEX idx_history_timestamp ON classification_history(timestamp DESC)
+      ''');
+
+      await db.execute('''
+        CREATE INDEX idx_history_user ON classification_history(userId)
+      ''');
+
+      await db.execute('''
+        CREATE INDEX idx_history_label ON classification_history(predictedLabel)
+      ''');
+    }
   }
 
   /// Closes the database connection

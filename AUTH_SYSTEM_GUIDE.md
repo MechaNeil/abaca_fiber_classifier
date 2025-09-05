@@ -83,7 +83,7 @@ Features/Auth/
 
 ```bash
 # Navigate to project directory
-cd abaca_prototype_v1
+cd abaca_fiber_classifier
 
 # Get dependencies
 flutter pub get
