@@ -24,6 +24,7 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _showAllGrades = false; // Toggle state for showing all grades
 
   @override
   void initState() {
@@ -191,6 +192,9 @@ class _HistoryPageState extends State<HistoryPage>
     final stats = widget.viewModel.gradeStatistics;
     if (stats.isEmpty) return const SizedBox.shrink();
 
+    // Determine which stats to show based on toggle state
+    final displayStats = _showAllGrades ? stats : stats.take(3).toList();
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -208,47 +212,84 @@ class _HistoryPageState extends State<HistoryPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Classification Summary',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...stats
-              .take(3)
-              .map(
-                (stat) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Classification Summary',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+              if (stats.length > 3)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showAllGrades = !_showAllGrades;
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: _getGradeColor(stat.key),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        _formatGradeName(stat.key),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${stat.value}',
+                        _showAllGrades ? 'Show Less' : 'Show All',
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: Colors.green,
                         ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showAllGrades ? Icons.expand_less : Icons.expand_more,
+                        size: 16,
+                        color: Colors.green,
                       ),
                     ],
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...displayStats.map(
+            (stat) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _getGradeColor(stat.key),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatGradeName(stat.key),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${stat.value}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ),
         ],
       ),
     );
