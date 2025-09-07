@@ -344,7 +344,7 @@ class AdminViewModel extends ChangeNotifier {
     if (errorString.contains(
       'Both target model and default model failed to load',
     )) {
-      return '❌ Unable to load any model files\n\n'
+      return 'Unable to load any model files\n\n'
           'The app encountered a serious issue and cannot load either the selected model or the default backup model. '
           'This usually means:\n\n'
           '• Model files may be corrupted or missing\n'
