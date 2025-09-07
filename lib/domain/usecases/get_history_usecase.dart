@@ -49,6 +49,17 @@ class GetHistoryUseCase {
     }
   }
 
+  /// Gets today's classification history records
+  ///
+  /// Returns: A list of classification history records from today
+  Future<List<ClassificationHistory>> getTodayHistory() async {
+    try {
+      return await _historyRepository.getTodayHistory();
+    } catch (e) {
+      throw Exception('Failed to retrieve today\'s history: ${e.toString()}');
+    }
+  }
+
   /// Gets history records for a specific user
   ///
   /// Parameters:

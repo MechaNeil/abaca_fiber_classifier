@@ -79,6 +79,13 @@ class HistoryViewModel extends ChangeNotifier {
     });
   }
 
+  /// Loads today's history
+  Future<void> loadTodayHistory() async {
+    await _performOperation(() async {
+      _recentHistory = await _getHistoryUseCase.getTodayHistory();
+    });
+  }
+
   /// Loads history statistics
   Future<void> loadStatistics() async {
     await _performOperation(() async {
@@ -92,7 +99,7 @@ class HistoryViewModel extends ChangeNotifier {
       // Load all data in parallel for better performance
       final futures = await Future.wait([
         _getHistoryUseCase.getAllHistory(),
-        _getHistoryUseCase.getRecentHistory(limit: 3),
+        _getHistoryUseCase.getTodayHistory(),
         _getHistoryUseCase.getHistoryStatistics(),
       ]);
 
