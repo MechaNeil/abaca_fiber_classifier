@@ -48,9 +48,19 @@ class _AdminPageState extends State<AdminPage>
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, maxLines: 4, overflow: TextOverflow.ellipsis),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(
+          seconds: 6,
+        ), // Longer duration for error messages
+        action: SnackBarAction(
+          label: 'DISMISS',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
     widget.viewModel.clearError();

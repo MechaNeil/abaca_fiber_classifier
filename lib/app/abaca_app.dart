@@ -6,6 +6,7 @@ import '../domain/usecases/initialize_model_usecase.dart';
 import '../domain/usecases/pick_image_usecase.dart';
 import '../domain/usecases/classify_image_usecase.dart';
 import '../domain/usecases/get_current_model_usecase.dart';
+import '../domain/usecases/reload_model_usecase.dart';
 import '../domain/usecases/save_history_usecase.dart';
 import '../domain/usecases/get_history_usecase.dart';
 import '../domain/usecases/delete_history_usecase.dart';
@@ -68,6 +69,7 @@ class _AbacaAppState extends State<AbacaApp> {
       final pickImageUseCase = PickImageUseCase(_repository);
       final classifyImageUseCase = ClassifyImageUseCase(_repository);
       final getCurrentModelUseCase = GetCurrentModelUseCase(_repository);
+      final reloadModelUseCase = ReloadModelUseCase(_repository);
 
       // Initialize classification view model
       _viewModel = ClassificationViewModel(
@@ -75,6 +77,7 @@ class _AbacaAppState extends State<AbacaApp> {
         pickImageUseCase: pickImageUseCase,
         classifyImageUseCase: classifyImageUseCase,
         getCurrentModelUseCase: getCurrentModelUseCase,
+        reloadModelUseCase: reloadModelUseCase,
       );
 
       // Initialize auth repository
@@ -118,6 +121,7 @@ class _AbacaAppState extends State<AbacaApp> {
         importModelUseCase: importModelUseCase,
         manageModelsUseCase: manageModelsUseCase,
         exportLogsUseCase: exportLogsUseCase,
+        classificationViewModel: _viewModel,
       );
     } catch (e) {
       // Log initialization error but continue with app startup

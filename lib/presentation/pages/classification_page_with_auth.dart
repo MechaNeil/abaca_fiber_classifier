@@ -35,6 +35,8 @@ class ClassificationPageWithAuth extends StatefulWidget {
 
 class _ClassificationPageWithAuthState
     extends State<ClassificationPageWithAuth> {
+  bool _showModelReady = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,18 +44,73 @@ class _ClassificationPageWithAuthState
     widget.viewModel.initializeModel();
     // Listen to changes in the view model
     widget.viewModel.addListener(_onViewModelChanged);
+    // Listen to admin view model changes if available
+    widget.adminViewModel?.addListener(_onAdminViewModelChanged);
   }
 
   @override
   void dispose() {
     widget.viewModel.removeListener(_onViewModelChanged);
+    widget.adminViewModel?.removeListener(_onAdminViewModelChanged);
     super.dispose();
   }
 
   void _onViewModelChanged() {
     // This will trigger a rebuild when the view model state changes
     if (mounted) {
+      // Check if model just became ready
+      if (widget.viewModel.isModelInitialized &&
+          !widget.viewModel.isLoading &&
+          !_showModelReady) {
+        setState(() {
+          _showModelReady = true;
+        });
+
+        // Hide the indicator after 3 seconds
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _showModelReady = false;
+            });
+          }
+        });
+      }
+
       setState(() {});
+      // Check for classification view model errors and show dialog
+      _checkAndShowClassificationErrors();
+    }
+  }
+
+  void _onAdminViewModelChanged() {
+    // Handle admin view model changes and show errors
+    if (mounted) {
+      setState(() {});
+      _checkAndShowAdminErrors();
+    }
+  }
+
+  void _checkAndShowClassificationErrors() {
+    final error = widget.viewModel.error;
+    if (error != null && error.contains('Failed to reload model:')) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          // Clear the error after detecting it
+          widget.viewModel.clearError();
+        }
+      });
+    }
+  }
+
+  void _checkAndShowAdminErrors() {
+    final adminError = widget.adminViewModel?.error;
+    if (adminError != null && adminError.contains('Failed to load model')) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          // Clear the error after detecting it
+          widget.adminViewModel?.clearError();
+        }
+      });
     }
   }
 
@@ -93,6 +150,156 @@ class _ClassificationPageWithAuthState
     );
   }
 
+  Widget _buildModelStatusIndicator() {
+    final classificationError = widget.viewModel.error;
+    final adminError = widget.adminViewModel?.error;
+    final isModelInitialized = widget.viewModel.isModelInitialized;
+    final isLoading = widget.viewModel.isLoading;
+    final isSwitchingModel = widget.adminViewModel?.isSwitchingModel ?? false;
+
+    // Show loading indicator when model is being switched or loaded
+    if (isLoading || isSwitchingModel) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isSwitchingModel ? 'Switching model...' : 'Loading model...',
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show error indicator if there are model-related errors
+    if (classificationError != null || adminError != null) {
+      final errorText = classificationError ?? adminError ?? '';
+      final isModelError =
+          errorText.contains('Failed to reload model:') ||
+          errorText.contains('Failed to load model') ||
+          errorText.contains('Critical error:');
+
+      if (isModelError) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.warning, color: Colors.red.shade600, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Model Error Detected',
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      'Using default model for safety',
+                      style: TextStyle(
+                        color: Colors.red.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    // Show success indicator when model is ready and flag is true
+    if (isModelInitialized && !isLoading && _showModelReady) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              'Model Ready',
+              style: TextStyle(
+                color: Colors.green.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Return empty container if no special status to show
+    return const SizedBox.shrink();
+  }
+
+  bool _canClassify() {
+    // Check if model is initialized
+    if (!widget.viewModel.isModelInitialized) {
+      return false;
+    }
+
+    // Check if currently loading or switching models
+    if (widget.viewModel.isLoading ||
+        (widget.adminViewModel?.isSwitchingModel ?? false)) {
+      return false;
+    }
+
+    // Check for model-related errors
+    final classificationError = widget.viewModel.error;
+    final adminError = widget.adminViewModel?.error;
+
+    if (classificationError != null &&
+        classificationError.contains('Failed to reload model:')) {
+      return false;
+    }
+
+    if (adminError != null && adminError.contains('Failed to load model')) {
+      return false;
+    }
+
+    return true;
+  }
+
   void _showClassificationGuide() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const ClassificationGuidePage()),
@@ -100,6 +307,31 @@ class _ClassificationPageWithAuthState
   }
 
   void _classifyImage(String imagePath) async {
+    // Check if model is ready and there are no critical errors
+    if (!widget.viewModel.isModelInitialized) {
+      _showErrorSnackBar(
+        'Model is not ready. Please wait for initialization to complete.',
+      );
+      return;
+    }
+
+    // Check for existing model errors
+    final classificationError = widget.viewModel.error;
+    final adminError = widget.adminViewModel?.error;
+    if (classificationError != null &&
+        classificationError.contains('Failed to reload model:')) {
+      _showErrorSnackBar(
+        'Cannot classify: Model error detected. Please check model status.',
+      );
+      return;
+    }
+    if (adminError != null && adminError.contains('Failed to load model')) {
+      _showErrorSnackBar(
+        'Cannot classify: Model switching error detected. Please check model status.',
+      );
+      return;
+    }
+
     try {
       // Set loading state
       setState(() {
@@ -108,6 +340,17 @@ class _ClassificationPageWithAuthState
 
       // Process the image and get classification result
       await widget.viewModel.classifyImageFromPath(imagePath);
+
+      // Check if classification was successful
+      if (widget.viewModel.error != null) {
+        // Classification failed, show error
+        if (mounted) {
+          _showErrorSnackBar(
+            'Classification failed: ${widget.viewModel.error}',
+          );
+        }
+        return;
+      }
 
       // Save classification to history if successful
       if (widget.viewModel.classificationResult != null && mounted) {
@@ -141,6 +384,8 @@ class _ClassificationPageWithAuthState
               result: widget.viewModel.classificationResult,
               labels: widget.viewModel.labels,
               isError: widget.viewModel.error != null,
+              authViewModel: widget.authViewModel,
+              classificationViewModel: widget.viewModel,
               onRetakePhoto: () {
                 Navigator.of(context).pop();
                 _showImageSourceModal();
@@ -154,8 +399,15 @@ class _ClassificationPageWithAuthState
         );
       }
     } catch (e) {
-      // Handle error
+      // Handle unexpected errors
+      debugPrint('Unexpected error during classification: $e');
       if (mounted) {
+        // Show error message
+        _showErrorSnackBar(
+          'An unexpected error occurred during classification.',
+        );
+
+        // Still navigate to results page to show error state
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ClassificationResultsPage(
@@ -163,6 +415,8 @@ class _ClassificationPageWithAuthState
               result: null,
               labels: widget.viewModel.labels,
               isError: true,
+              authViewModel: widget.authViewModel,
+              classificationViewModel: widget.viewModel,
               onRetakePhoto: () {
                 Navigator.of(context).pop();
                 _showImageSourceModal();
@@ -172,6 +426,29 @@ class _ClassificationPageWithAuthState
         );
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
   }
 
   void _showViewHistory() {
@@ -359,27 +636,32 @@ class _ClassificationPageWithAuthState
 
             const SizedBox(height: 40),
 
+            // Model Status Indicator
+            _buildModelStatusIndicator(),
+
+            const SizedBox(height: 16),
+
             // Classify New Button
             SizedBox(
               width: 200,
               height: 50,
               child: ElevatedButton(
-                onPressed: _showImageSourceModal,
+                onPressed: _canClassify() ? _showImageSourceModal : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: _canClassify() ? Colors.green : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
                   elevation: 2,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      'Classify New',
-                      style: TextStyle(
+                      _canClassify() ? 'Classify New' : 'Model Error',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

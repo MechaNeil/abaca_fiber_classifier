@@ -67,6 +67,15 @@ class ClassificationRepositoryImpl implements ClassificationRepository {
   }
 
   @override
+  Future<ModelInfo> reloadModel() async {
+    try {
+      return await _mlService.reloadModel();
+    } catch (e) {
+      throw Exception('Failed to reload model: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _mlService.dispose();
   }

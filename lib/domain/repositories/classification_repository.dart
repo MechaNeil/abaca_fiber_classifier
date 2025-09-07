@@ -10,5 +10,6 @@ abstract class ClassificationRepository {
     List<String> labels,
   );
   Future<String> getCurrentModelName();
+  Future<ModelInfo> reloadModel();
   void dispose();
 }

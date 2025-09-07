@@ -89,6 +89,21 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Future<void> setCurrentModel(String modelPath) async {
+    // Validate the model path before setting it
+    if (!modelPath.startsWith('assets/')) {
+      final modelFile = File(modelPath);
+      if (!await modelFile.exists()) {
+        throw Exception('Model file does not exist: $modelPath');
+      }
+
+      // Check if it's a .tflite file
+      if (!modelPath.toLowerCase().endsWith('.tflite')) {
+        throw Exception(
+          'Invalid model file type. Expected .tflite file: $modelPath',
+        );
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentModelKey, modelPath);
   }

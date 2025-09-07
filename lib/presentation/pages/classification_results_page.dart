@@ -3,6 +3,8 @@ import 'dart:io';
 import '../../domain/entities/classification_result.dart';
 import '../widgets/camera_with_guide_overlay.dart';
 import '../../core/utils/grade_colors.dart';
+import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
+import '../viewmodels/classification_view_model.dart';
 
 class ClassificationResultsPage extends StatefulWidget {
   final String imagePath;
@@ -11,6 +13,8 @@ class ClassificationResultsPage extends StatefulWidget {
   final bool isError;
   final VoidCallback? onRetakePhoto;
   final VoidCallback? onNewClassification;
+  final AuthViewModel? authViewModel;
+  final ClassificationViewModel? classificationViewModel;
 
   const ClassificationResultsPage({
     super.key,
@@ -20,6 +24,8 @@ class ClassificationResultsPage extends StatefulWidget {
     this.isError = false,
     this.onRetakePhoto,
     this.onNewClassification,
+    this.authViewModel,
+    this.classificationViewModel,
   });
 
   @override
@@ -29,6 +35,31 @@ class ClassificationResultsPage extends StatefulWidget {
 
 class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
   bool _isExpanded = false; // State to track if grade distribution is expanded
+  String? _currentModelName; // Track current model name for admin display
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentModelName();
+  }
+
+  Future<void> _loadCurrentModelName() async {
+    if (widget.authViewModel?.loggedInUser?.isAdmin == true &&
+        widget.classificationViewModel != null) {
+      try {
+        final modelName = await widget.classificationViewModel!
+            .getCurrentModelName();
+        if (mounted) {
+          setState(() {
+            _currentModelName = modelName;
+          });
+        }
+      } catch (e) {
+        // Handle error silently - admin feature shouldn't break the page
+        debugPrint('Error loading model name: $e');
+      }
+    }
+  }
 
   String _formatTimestamp(DateTime dateTime) {
     // You need to add intl package to your pubspec.yaml: intl: ^0.18.0
@@ -268,6 +299,20 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     ),
 
                     const SizedBox(height: 16),
+
+                    // Admin-only: Model Information
+                    if (widget.authViewModel?.loggedInUser?.isAdmin == true &&
+                        _currentModelName != null) ...[
+                      Text(
+                        'Model: $_currentModelName',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
 
                     // Confidence
                     Text(

@@ -5,6 +5,7 @@ import '../../domain/usecases/initialize_model_usecase.dart';
 import '../../domain/usecases/pick_image_usecase.dart';
 import '../../domain/usecases/classify_image_usecase.dart';
 import '../../domain/usecases/get_current_model_usecase.dart';
+import '../../domain/usecases/reload_model_usecase.dart';
 import '../../core/utils/image_utils.dart';
 
 class ClassificationViewModel extends ChangeNotifier {
@@ -12,16 +13,19 @@ class ClassificationViewModel extends ChangeNotifier {
   final PickImageUseCase _pickImageUseCase;
   final ClassifyImageUseCase _classifyImageUseCase;
   final GetCurrentModelUseCase _getCurrentModelUseCase;
+  final ReloadModelUseCase _reloadModelUseCase;
 
   ClassificationViewModel({
     required InitializeModelUseCase initializeModelUseCase,
     required PickImageUseCase pickImageUseCase,
     required ClassifyImageUseCase classifyImageUseCase,
     required GetCurrentModelUseCase getCurrentModelUseCase,
+    required ReloadModelUseCase reloadModelUseCase,
   }) : _initializeModelUseCase = initializeModelUseCase,
        _pickImageUseCase = pickImageUseCase,
        _classifyImageUseCase = classifyImageUseCase,
-       _getCurrentModelUseCase = getCurrentModelUseCase;
+       _getCurrentModelUseCase = getCurrentModelUseCase,
+       _reloadModelUseCase = reloadModelUseCase;
 
   // State variables
   bool _isLoading = false;
@@ -71,6 +75,35 @@ class ClassificationViewModel extends ChangeNotifier {
     } catch (e) {
       _setError('Failed to initialize model: $e');
       debugPrint('Model initialization error: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> reloadModel() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final (modelInfo, labels) = await _reloadModelUseCase();
+      _modelInfo = modelInfo;
+      _labels = labels;
+      _isModelInitialized = true;
+
+      debugPrint('Model reloaded successfully');
+      debugPrint('Input: ${modelInfo.inputInfo}');
+      debugPrint('Output: ${modelInfo.outputInfo}');
+
+      if (modelInfo.isQuantized) {
+        debugPrint(
+          '[Warning] Detected quantized input tensor (${modelInfo.inputType})',
+        );
+      }
+    } catch (e) {
+      _setError('Failed to reload model: $e');
+      debugPrint('Model reload error: $e');
+      // Rethrow the exception so AdminViewModel can handle it properly
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -165,6 +198,12 @@ class ClassificationViewModel extends ChangeNotifier {
 
   void _clearError() {
     _error = null;
+  }
+
+  /// Clears the current error (public method for UI)
+  void clearError() {
+    _clearError();
+    notifyListeners();
   }
 
   void _clearResults() {

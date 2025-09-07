@@ -4,20 +4,24 @@ import '../../domain/entities/model_entity.dart';
 import '../../domain/usecases/import_model_usecase.dart';
 import '../../domain/usecases/manage_models_usecase.dart';
 import '../../domain/usecases/export_logs_usecase.dart';
+import '../../../../presentation/viewmodels/classification_view_model.dart';
 
 /// ViewModel for handling admin operations and state
 class AdminViewModel extends ChangeNotifier {
   final ImportModelUseCase _importModelUseCase;
   final ManageModelsUseCase _manageModelsUseCase;
   final ExportLogsUseCase _exportLogsUseCase;
+  final ClassificationViewModel? _classificationViewModel;
 
   AdminViewModel({
     required ImportModelUseCase importModelUseCase,
     required ManageModelsUseCase manageModelsUseCase,
     required ExportLogsUseCase exportLogsUseCase,
+    ClassificationViewModel? classificationViewModel,
   }) : _importModelUseCase = importModelUseCase,
        _manageModelsUseCase = manageModelsUseCase,
-       _exportLogsUseCase = exportLogsUseCase;
+       _exportLogsUseCase = exportLogsUseCase,
+       _classificationViewModel = classificationViewModel;
 
   // Loading states
   bool _isImporting = false;
@@ -147,12 +151,71 @@ class AdminViewModel extends ChangeNotifier {
     _successMessage = null;
     notifyListeners();
 
+    // Save the current model in case we need to revert
+    final previousModel = _currentModel;
+    final previousModelPath = previousModel?.path;
+
     try {
       await _manageModelsUseCase.setActiveModel(model.path);
-      _currentModel = model;
-      _successMessage = 'Switched to model: ${model.name}';
+
+      // Trigger model reload in classification view model
+      if (_classificationViewModel != null) {
+        try {
+          await _classificationViewModel.reloadModel();
+          debugPrint('Model reloaded in classification system');
+
+          // Only update UI state if model reload was successful
+          _currentModel = model;
+          _successMessage = 'Successfully switched to model: ${model.name}';
+        } catch (reloadError) {
+          debugPrint('Model reload failed: $reloadError');
+
+          // Model reload failed, so we need to revert both the model service and UI state
+          if (previousModelPath != null) {
+            try {
+              // Revert the model path in ModelService
+              await _manageModelsUseCase.setActiveModel(previousModelPath);
+              // Try to reload the previous model
+              await _classificationViewModel.reloadModel();
+
+              // Keep the UI showing the previous model since that's what's actually active
+              _currentModel = previousModel;
+
+              // Provide detailed error message based on the type of error
+              if (reloadError.toString().contains('FULLY_CONNECTED') ||
+                  reloadError.toString().contains('builtin opcode')) {
+                _error =
+                    'Model "${model.name}" is incompatible with the current TensorFlow Lite runtime. This model uses unsupported operators. Please use a TensorFlow Lite v2.x compatible model. Reverted to previous model.';
+              } else if (reloadError.toString().contains(
+                'Unable to create interpreter',
+              )) {
+                _error =
+                    'Model "${model.name}" could not be loaded - the file may be corrupted or incompatible. Reverted to previous model.';
+              } else {
+                _error =
+                    'Failed to load model "${model.name}": ${reloadError.toString()}. Reverted to previous model.';
+              }
+            } catch (revertError) {
+              _currentModel = previousModel; // Keep UI consistent
+              _error =
+                  'Failed to switch to "${model.name}" and could not revert to previous model. Please restart the app. Error: $revertError';
+            }
+          } else {
+            // No previous model to revert to
+            _error =
+                'Failed to load model "${model.name}": ${reloadError.toString()}';
+          }
+        }
+      } else {
+        // No classification view model available, just update the path
+        _currentModel = model;
+        _successMessage =
+            'Model path updated to: ${model.name}. Restart the app to use the new model.';
+      }
     } catch (e) {
+      // Failed to set active model in the first place
       _error = 'Failed to switch model: ${e.toString()}';
+      _currentModel = previousModel; // Restore previous model reference
     }
 
     _isSwitchingModel = false;
@@ -168,8 +231,25 @@ class AdminViewModel extends ChangeNotifier {
 
     try {
       await _manageModelsUseCase.revertToDefault();
-      _currentModel = await _manageModelsUseCase.getCurrentModel();
-      _successMessage = 'Reverted to default model';
+
+      // Trigger model reload in classification view model
+      if (_classificationViewModel != null) {
+        try {
+          await _classificationViewModel.reloadModel();
+          debugPrint('Model reloaded in classification system after reverting');
+
+          // Update UI state only after successful reload
+          _currentModel = await _manageModelsUseCase.getCurrentModel();
+          _successMessage = 'Successfully reverted to default model';
+        } catch (reloadError) {
+          debugPrint('Failed to reload default model: $reloadError');
+          _error =
+              'Reverted to default model path but failed to reload: ${reloadError.toString()}. Please restart the app.';
+        }
+      } else {
+        _currentModel = await _manageModelsUseCase.getCurrentModel();
+        _successMessage = 'Reverted to default model';
+      }
     } catch (e) {
       _error = 'Failed to revert to default model: ${e.toString()}';
     }
