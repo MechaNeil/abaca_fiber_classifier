@@ -174,16 +174,55 @@ class _HistoryPageState extends State<HistoryPage>
 
     return Column(
       children: [
-        // Statistics overview
-        _buildStatisticsOverview(),
+        // Statistics overview - Only show for admin users
+        if (widget.authViewModel.loggedInUser?.isAdmin == true)
+          _buildStatisticsOverview(),
 
         // Grade filter
         _buildGradeFilter(),
 
-        // History list
-        Expanded(child: _buildHistoryList(widget.viewModel.filteredHistory)),
+        // History list with custom filtering
+        Expanded(child: _buildHistoryList(_getFilteredHistoryForUser())),
       ],
     );
+  }
+
+  /// Gets filtered history based on user role and selected filter
+  List<ClassificationHistory> _getFilteredHistoryForUser() {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final selectedFilter = widget.viewModel.selectedGradeFilter;
+
+    if (selectedFilter == 'All') {
+      if (isAdmin) {
+        // Admin sees all history
+        return widget.viewModel.allHistory;
+      } else {
+        // Non-admin users see all history but with modified display
+        return widget.viewModel.allHistory;
+      }
+    } else if (selectedFilter == 'Cannot be classified') {
+      // Show only low confidence entries (for non-admin users)
+      return widget.viewModel.allHistory
+          .where((history) => history.confidence <= 0.5)
+          .toList();
+    } else {
+      // Standard grade filtering
+      if (isAdmin) {
+        // Admin sees all entries for the grade
+        return widget.viewModel.allHistory
+            .where((history) => history.predictedLabel == selectedFilter)
+            .toList();
+      } else {
+        // Non-admin users only see high confidence entries for the grade
+        return widget.viewModel.allHistory
+            .where(
+              (history) =>
+                  history.predictedLabel == selectedFilter &&
+                  history.confidence > 0.5,
+            )
+            .toList();
+      }
+    }
   }
 
   Widget _buildRecentTab() {
@@ -302,20 +341,68 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildGradeFilter() {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+
+    // Get available grades based on user role
+    List<String> availableGrades;
+    if (isAdmin) {
+      // Admin users see all actual grades
+      availableGrades = widget.viewModel.availableGrades;
+    } else {
+      // Non-admin users see modified grade list
+      final actualGrades = widget.viewModel.availableGrades
+          .where((grade) => grade != 'All')
+          .toList();
+      final nonLowConfidenceGrades = <String>[];
+      bool hasLowConfidenceEntries = false;
+
+      // Check which grades have high confidence entries for non-admin users
+      for (final grade in actualGrades) {
+        final gradeEntries = widget.viewModel.allHistory
+            .where((h) => h.predictedLabel == grade)
+            .toList();
+        final hasHighConfidenceEntries = gradeEntries.any(
+          (h) => h.confidence > 0.5,
+        );
+        final hasLowConfidenceForGrade = gradeEntries.any(
+          (h) => h.confidence <= 0.5,
+        );
+
+        if (hasHighConfidenceEntries) {
+          nonLowConfidenceGrades.add(grade);
+        }
+
+        if (hasLowConfidenceForGrade) {
+          hasLowConfidenceEntries = true;
+        }
+      }
+
+      availableGrades = ['All', ...nonLowConfidenceGrades];
+
+      // Add "Cannot be classified" filter if there are low confidence entries
+      if (hasLowConfidenceEntries) {
+        availableGrades.add('Cannot be classified');
+      }
+    }
+
     return Container(
       height: 50,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: widget.viewModel.availableGrades.length,
+        itemCount: availableGrades.length,
         itemBuilder: (context, index) {
-          final grade = widget.viewModel.availableGrades[index];
+          final grade = availableGrades[index];
           final isSelected = grade == widget.viewModel.selectedGradeFilter;
 
           return Container(
             margin: const EdgeInsets.only(right: 8),
             child: FilterChip(
-              label: Text(_formatGradeName(grade)),
+              label: Text(
+                grade == 'Cannot be classified'
+                    ? grade
+                    : _formatGradeName(grade),
+              ),
               selected: isSelected,
               onSelected: (_) => widget.viewModel.setGradeFilter(grade),
               selectedColor: Colors.green.withValues(alpha: 0.2),
@@ -343,6 +430,9 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildHistoryItem(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -371,11 +461,15 @@ class _HistoryPageState extends State<HistoryPage>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getGradeColor(history.predictedLabel),
+                color: (isLowConfidence && !isAdmin)
+                    ? Colors.grey
+                    : _getGradeColor(history.predictedLabel),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                history.gradeLabel,
+                (isLowConfidence && !isAdmin)
+                    ? 'Cannot be classified'
+                    : history.gradeLabel,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -384,14 +478,16 @@ class _HistoryPageState extends State<HistoryPage>
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              history.confidencePercentage,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+            // Only show confidence for admin users or high confidence results
+            if (isAdmin || !isLowConfidence)
+              Text(
+                history.confidencePercentage,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
               ),
-            ),
           ],
         ),
         subtitle: Text(
@@ -590,6 +686,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   void _showDetailsDialog(ClassificationHistory history) {
     final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
 
     showDialog(
       context: context,
@@ -618,8 +715,16 @@ class _HistoryPageState extends State<HistoryPage>
                 ),
               ),
               const SizedBox(height: 16),
-              _buildDetailRow('Grade:', history.gradeLabel),
-              _buildDetailRow('Confidence:', history.confidencePercentage),
+              // Show grade or "Cannot be classified" based on user role and confidence
+              _buildDetailRow(
+                'Grade:',
+                (isLowConfidence && !isAdmin)
+                    ? 'Cannot be classified'
+                    : history.gradeLabel,
+              ),
+              // Only show confidence for admin users or high confidence results
+              if (isAdmin || !isLowConfidence)
+                _buildDetailRow('Confidence:', history.confidencePercentage),
               _buildDetailRow('Date:', history.formattedDate),
               if (isAdmin) ...[_buildDetailRow('Model:', history.model)],
               const SizedBox(height: 16),

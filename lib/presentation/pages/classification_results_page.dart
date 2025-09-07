@@ -185,15 +185,33 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     // Low Confidence State (≤50%)
                     const Icon(Icons.warning, size: 60, color: Colors.amber),
                     const SizedBox(height: 16),
-                    const Text(
-                      "We couldn't classify\nthe fiber",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+
+                    // Show different messages based on user role
+                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
+                        true) ...[
+                      // Admin users see the original message
+                      const Text(
+                        "We couldn't classify\nthe fiber",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      // Non-admin users see "Cannot be classified"
+                      const Text(
+                        "Cannot be classified",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 12),
                     Text(
                       "Please make sure the photo is clear,\nwell-lit, and shows an abaca fiber",
@@ -208,75 +226,79 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Grade Distribution for Low Confidence
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isExpanded = !_isExpanded;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Flexible(
-                                  child: Text(
-                                    'Possible Grade Distribution',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                    // Grade Distribution for Low Confidence - Only show for admin users
+                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
+                        true) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Flexible(
+                                    child: Text(
+                                      'Possible Grade Distribution',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isExpanded ? 'Show less' : 'Show all',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isExpanded ? 'Show less' : 'Show all',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    AnimatedRotation(
-                                      turns: _isExpanded ? 0.5 : 0.0,
-                                      duration: const Duration(
-                                        milliseconds: 200,
+                                      const SizedBox(width: 4),
+                                      AnimatedRotation(
+                                        turns: _isExpanded ? 0.5 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Icon(
+                                          Icons.keyboard_arrow_up,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_up,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Grade bars for low confidence
-                          if (widget.result!.probabilities.isNotEmpty) ...[
-                            _buildAllGradeBars(
-                              widget.result!.probabilities,
-                              widget.labels,
-                              _isExpanded,
-                            ),
+                            // Grade bars for low confidence - admin only
+                            if (widget.result!.probabilities.isNotEmpty) ...[
+                              _buildAllGradeBars(
+                                widget.result!.probabilities,
+                                widget.labels,
+                                _isExpanded,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ] else if (widget.result != null) ...[
                     // Success State
                     Container(
@@ -322,77 +344,81 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     const SizedBox(height: 24),
 
-                    // Grade Distribution
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isExpanded = !_isExpanded;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Flexible(
-                                  child: Text(
-                                    'Grade Distribution',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                    // Grade Distribution - Only show for admin users
+                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
+                        true) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Flexible(
+                                    child: Text(
+                                      'Grade Distribution',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isExpanded ? 'Show less' : 'Show all',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isExpanded ? 'Show less' : 'Show all',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    AnimatedRotation(
-                                      turns: _isExpanded ? 0.5 : 0.0,
-                                      duration: const Duration(
-                                        milliseconds: 200,
+                                      const SizedBox(width: 4),
+                                      AnimatedRotation(
+                                        turns: _isExpanded ? 0.5 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Icon(
+                                          Icons.keyboard_arrow_up,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_up,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Grade bars
-                          if (widget.result!.probabilities.isNotEmpty) ...[
-                            _buildAllGradeBars(
-                              widget.result!.probabilities,
-                              widget.labels,
-                              _isExpanded,
-                            ),
+                            // Grade bars
+                            if (widget.result!.probabilities.isNotEmpty) ...[
+                              _buildAllGradeBars(
+                                widget.result!.probabilities,
+                                widget.labels,
+                                _isExpanded,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Timestamp
                     Text(
