@@ -46,14 +46,39 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _showErrorSnackBar(String message) {
+    final userFriendlyMessage = _getUserFriendlyErrorMessage(message);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, maxLines: 4, overflow: TextOverflow.ellipsis),
-        backgroundColor: Colors.red,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Error',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              userFriendlyMessage,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(
-          seconds: 6,
-        ), // Longer duration for error messages
+        duration: const Duration(seconds: 8),
         action: SnackBarAction(
           label: 'DISMISS',
           textColor: Colors.white,
@@ -66,12 +91,106 @@ class _AdminPageState extends State<AdminPage>
     widget.viewModel.clearError();
   }
 
+  /// Convert technical error messages to user-friendly ones
+  String _getUserFriendlyErrorMessage(String technicalMessage) {
+    final lowerMessage = technicalMessage.toLowerCase();
+
+    // File picker related errors
+    if (lowerMessage.contains('failed to pick file')) {
+      return 'Unable to access the selected file. Please try selecting the file again.';
+    }
+
+    if (lowerMessage.contains('please select a valid tensorflow lite')) {
+      return 'The selected file is not a valid model file. Please choose a .tflite file.';
+    }
+
+    // Model loading/switching errors
+    if (lowerMessage.contains(
+          'incompatible with the current tensorflow lite runtime',
+        ) ||
+        lowerMessage.contains('unsupported operators')) {
+      return 'This model is not compatible with the app. Please use a different model file or check with your administrator.';
+    }
+
+    if (lowerMessage.contains('unable to create interpreter') ||
+        lowerMessage.contains('corrupted or incompatible')) {
+      return 'The model file appears to be damaged or corrupted. Please try downloading the model again.';
+    }
+
+    if (lowerMessage.contains('failed to load models')) {
+      return 'Unable to load the available models. Please check your device storage and try again.';
+    }
+
+    if (lowerMessage.contains('failed to import model')) {
+      return 'The model could not be imported. Please ensure the file is a valid .tflite model and try again.';
+    }
+
+    if (lowerMessage.contains('failed to switch model')) {
+      return 'Unable to change to the selected model. The previous model will continue to be used.';
+    }
+
+    if (lowerMessage.contains('failed to revert to default model')) {
+      return 'Unable to restore the default model. Please restart the app or contact support.';
+    }
+
+    if (lowerMessage.contains('failed to delete model')) {
+      return 'The model could not be removed. Please try again or restart the app.';
+    }
+
+    // Export related errors
+    if (lowerMessage.contains('export feature will be available')) {
+      return 'The export feature is coming soon! This functionality will be available in a future update.';
+    }
+
+    if (lowerMessage.contains('failed to export logs')) {
+      return 'Unable to export the data. Please check your device storage and permissions.';
+    }
+
+    // Network/permission related errors
+    if (lowerMessage.contains('permission') ||
+        lowerMessage.contains('access denied')) {
+      return 'The app needs permission to access this file. Please check your device settings and try again.';
+    }
+
+    if (lowerMessage.contains('storage') || lowerMessage.contains('space')) {
+      return 'There may not be enough storage space on your device. Please free up some space and try again.';
+    }
+
+    // Generic fallback for unknown errors
+    if (lowerMessage.contains('failed to') || lowerMessage.contains('error')) {
+      return 'Something went wrong. Please try again or restart the app if the problem continues.';
+    }
+
+    // If no pattern matches, return a generic user-friendly message
+    return 'An unexpected issue occurred. Please try again or contact support if this continues.';
+  }
+
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message, style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'DISMISS',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
     widget.viewModel.clearSuccessMessage();
@@ -339,9 +458,27 @@ class _AdminPageState extends State<AdminPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Switch Model'),
-        content: Text(
-          'Are you sure you want to switch to "${model.name}"? This will change the active model used for all classifications.',
+        title: const Row(
+          children: [
+            Icon(Icons.swap_horiz, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Switch Model'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to switch to "${model.name}"?',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This will change the active model used for all future classifications. Your current model will remain available in the list.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -354,7 +491,10 @@ class _AdminPageState extends State<AdminPage>
               widget.viewModel.switchToModel(model);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Switch'),
+            child: const Text(
+              'Switch Model',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -365,9 +505,48 @@ class _AdminPageState extends State<AdminPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Model'),
-        content: Text(
-          'Are you sure you want to delete "${model.name}"? This action cannot be undone.',
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Remove Model'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to remove "${model.name}"?',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This action cannot be undone. The model file will be permanently deleted from your device.',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You can re-import this model later if needed.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -380,7 +559,10 @@ class _AdminPageState extends State<AdminPage>
               widget.viewModel.deleteModel(model);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text(
+              'Remove Model',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
