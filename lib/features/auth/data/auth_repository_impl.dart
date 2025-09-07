@@ -144,4 +144,44 @@ class AuthRepositoryImpl implements AuthRepository {
 
     return result.map((userMap) => User.fromMap(userMap)).toList();
   }
+
+  /// Ensures the default admin user exists in the database
+  ///
+  /// This method creates a default admin user with username 'admin' and password 'admin29'
+  /// if it doesn't already exist. This is useful for ensuring there's always an admin user
+  /// available, especially after app installations or database resets.
+  ///
+  /// Admin user details:
+  /// - Username: admin
+  /// - Password: admin29
+  /// - Role: admin
+  /// - First Name: Admin
+  /// - Last Name: User
+  @override
+  Future<void> ensureAdminUserExists() async {
+    final db = await _databaseService.database;
+
+    // Check if admin user already exists
+    final result = await db.query(
+      'users',
+      where: 'username = ? OR role = ?',
+      whereArgs: ['admin', 'admin'],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      // Create default admin user
+      final hashedPassword = BCrypt.hashpw('admin29', BCrypt.gensalt());
+      final adminUser = User(
+        firstName: 'Admin',
+        lastName: 'User',
+        username: 'admin',
+        password: hashedPassword,
+        createdAt: DateTime.now(),
+        role: 'admin',
+      );
+
+      await db.insert('users', adminUser.toMap());
+    }
+  }
 }
