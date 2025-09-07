@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../domain/entities/classification_history.dart';
 import '../viewmodels/history_view_model.dart';
 import '../../core/utils/grade_colors.dart';
+import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 
 /// History page displaying classification history records
 ///
@@ -14,8 +15,13 @@ import '../../core/utils/grade_colors.dart';
 /// - Recent activity
 class HistoryPage extends StatefulWidget {
   final HistoryViewModel viewModel;
+  final AuthViewModel authViewModel;
 
-  const HistoryPage({super.key, required this.viewModel});
+  const HistoryPage({
+    super.key,
+    required this.viewModel,
+    required this.authViewModel,
+  });
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -583,6 +589,8 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   void _showDetailsDialog(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -613,6 +621,7 @@ class _HistoryPageState extends State<HistoryPage>
               _buildDetailRow('Grade:', history.gradeLabel),
               _buildDetailRow('Confidence:', history.confidencePercentage),
               _buildDetailRow('Date:', history.formattedDate),
+              if (isAdmin) ...[_buildDetailRow('Model:', history.model)],
               const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerRight,

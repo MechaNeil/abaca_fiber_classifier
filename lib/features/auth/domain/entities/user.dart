@@ -5,6 +5,7 @@ class User {
   final String username;
   final String password;
   final DateTime createdAt;
+  final String role; // 'admin' or 'user'
 
   const User({
     this.id,
@@ -13,7 +14,10 @@ class User {
     required this.username,
     required this.password,
     required this.createdAt,
+    this.role = 'user', // Default role is 'user'
   });
+
+  bool get isAdmin => role == 'admin';
 
   Map<String, dynamic> toMap() {
     return {
@@ -23,6 +27,7 @@ class User {
       'username': username,
       'password': password,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'role': role,
     };
   }
 
@@ -34,6 +39,8 @@ class User {
       username: map['username'],
       password: map['password'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
+      role:
+          map['role'] ?? 'user', // Default to 'user' for backward compatibility
     );
   }
 
@@ -44,6 +51,7 @@ class User {
     String? username,
     String? password,
     DateTime? createdAt,
+    String? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -52,12 +60,13 @@ class User {
       username: username ?? this.username,
       password: password ?? this.password,
       createdAt: createdAt ?? this.createdAt,
+      role: role ?? this.role,
     );
   }
 
   @override
   String toString() {
-    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, createdAt: $createdAt)';
+    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, role: $role, createdAt: $createdAt)';
   }
 
   @override
@@ -69,7 +78,8 @@ class User {
         other.lastName == lastName &&
         other.username == username &&
         other.password == password &&
-        other.createdAt == createdAt;
+        other.createdAt == createdAt &&
+        other.role == role;
   }
 
   @override
@@ -79,6 +89,7 @@ class User {
         lastName.hashCode ^
         username.hashCode ^
         password.hashCode ^
-        createdAt.hashCode;
+        createdAt.hashCode ^
+        role.hashCode;
   }
 }

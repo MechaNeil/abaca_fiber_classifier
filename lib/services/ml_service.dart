@@ -7,12 +7,30 @@ import '../core/utils/image_utils.dart';
 import '../core/utils/list_extensions.dart' as list_ext;
 import '../domain/entities/classification_result.dart';
 import '../domain/entities/model_info.dart';
+import 'model_service.dart';
 
 class MLService {
   Interpreter? _interpreter;
 
   Future<ModelInfo> loadModel() async {
-    _interpreter = await Interpreter.fromAsset(AppConstants.modelPath);
+    // Get the current model path from admin settings
+    final modelPath = await ModelService.getCurrentModelPath();
+
+    // Load the model based on whether it's an asset or file
+    if (modelPath.startsWith('assets/')) {
+      _interpreter = await Interpreter.fromAsset(modelPath);
+    } else {
+      // Check if the file exists
+      final modelFile = File(modelPath);
+      if (!await modelFile.exists()) {
+        // Fall back to default model if the file doesn't exist
+        await ModelService.revertToDefault();
+        _interpreter = await Interpreter.fromAsset(AppConstants.modelPath);
+      } else {
+        _interpreter = Interpreter.fromFile(modelFile);
+      }
+    }
+
     _interpreter!.allocateTensors();
 
     final inTensor = _interpreter!.getInputTensor(0);
@@ -179,6 +197,11 @@ class MLService {
       confidence: confidence,
       probabilities: probs,
     );
+  }
+
+  /// Get the current model name being used
+  Future<String> getCurrentModelName() async {
+    return await ModelService.getCurrentModelName();
   }
 
   void dispose() {

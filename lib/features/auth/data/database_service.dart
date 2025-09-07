@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:bcrypt/bcrypt.dart';
+import '../domain/entities/user.dart';
 
 /// Database service for managing SQLite database operations
 ///
@@ -40,7 +42,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2, // Increment version for new table
+      version: 4, // Increment version for model column
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -89,7 +91,8 @@ class DatabaseService {
         lastName $textType,
         username $textType UNIQUE,
         password $textType,
-        createdAt $integerType
+        createdAt $integerType,
+        role TEXT NOT NULL DEFAULT 'user'
       )
     ''');
 
@@ -103,6 +106,7 @@ class DatabaseService {
         probabilities $textType,
         timestamp $integerType,
         userId INTEGER,
+        model TEXT NOT NULL DEFAULT 'mobilenetv3small_b2.tflite',
         FOREIGN KEY (userId) REFERENCES users (id)
       )
     ''');
@@ -121,6 +125,35 @@ class DatabaseService {
     await db.execute('''
       CREATE INDEX idx_history_label ON classification_history(predictedLabel)
     ''');
+
+    // Initialize default admin user
+    await _initializeAdminUser(db);
+  }
+
+  /// Initializes the default admin user if not exists
+  Future<void> _initializeAdminUser(Database db) async {
+    // Check if admin user already exists
+    final result = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: ['admin'],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      // Create default admin user
+      final hashedPassword = BCrypt.hashpw('admin29', BCrypt.gensalt());
+      final adminUser = User(
+        firstName: 'Admin',
+        lastName: 'User',
+        username: 'admin',
+        password: hashedPassword,
+        createdAt: DateTime.now(),
+        role: 'admin',
+      );
+
+      await db.insert('users', adminUser.toMap());
+    }
   }
 
   /// Handles database upgrades
@@ -150,6 +183,7 @@ class DatabaseService {
           probabilities $textType,
           timestamp $integerType,
           userId INTEGER,
+          model TEXT NOT NULL DEFAULT 'mobilenetv3small_b2.tflite',
           FOREIGN KEY (userId) REFERENCES users (id)
         )
       ''');
@@ -165,6 +199,23 @@ class DatabaseService {
 
       await db.execute('''
         CREATE INDEX idx_history_label ON classification_history(predictedLabel)
+      ''');
+    }
+
+    if (oldVersion < 3) {
+      // Add role column in version 3
+      await db.execute('''
+        ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'
+      ''');
+
+      // Initialize admin user after adding role column
+      await _initializeAdminUser(db);
+    }
+
+    if (oldVersion < 4) {
+      // Add model column in version 4
+      await db.execute('''
+        ALTER TABLE classification_history ADD COLUMN model TEXT NOT NULL DEFAULT 'mobilenetv3small_b2.tflite'
       ''');
     }
   }

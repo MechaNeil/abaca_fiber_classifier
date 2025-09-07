@@ -18,6 +18,7 @@ class SaveHistoryUseCase {
   /// - [confidence]: The confidence score of the prediction
   /// - [probabilities]: The probability scores for all classes
   /// - [userId]: Optional user ID for multi-user support
+  /// - [model]: The model used for classification
   ///
   /// Returns: The ID of the saved history record
   ///
@@ -29,6 +30,7 @@ class SaveHistoryUseCase {
     required double confidence,
     required List<double> probabilities,
     int? userId,
+    String model = 'mobilenetv3small_b2.tflite',
   }) async {
     try {
       // Validate input parameters
@@ -56,6 +58,7 @@ class SaveHistoryUseCase {
         probabilities: probabilities,
         timestamp: DateTime.now(),
         userId: userId,
+        model: model,
       );
 
       // Save to repository

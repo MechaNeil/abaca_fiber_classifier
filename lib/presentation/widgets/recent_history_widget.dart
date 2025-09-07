@@ -4,6 +4,7 @@ import '../../domain/entities/classification_history.dart';
 import '../viewmodels/history_view_model.dart';
 import '../pages/history_page.dart';
 import '../../core/utils/grade_colors.dart';
+import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 
 /// Widget for displaying recent classification history
 ///
@@ -11,8 +12,13 @@ import '../../core/utils/grade_colors.dart';
 /// on the home page and provides navigation to the full history.
 class RecentHistoryWidget extends StatefulWidget {
   final HistoryViewModel historyViewModel;
+  final AuthViewModel authViewModel;
 
-  const RecentHistoryWidget({super.key, required this.historyViewModel});
+  const RecentHistoryWidget({
+    super.key,
+    required this.historyViewModel,
+    required this.authViewModel,
+  });
 
   @override
   State<RecentHistoryWidget> createState() => _RecentHistoryWidgetState();
@@ -302,12 +308,17 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   void _navigateToHistoryPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => HistoryPage(viewModel: widget.historyViewModel),
+        builder: (context) => HistoryPage(
+          viewModel: widget.historyViewModel,
+          authViewModel: widget.authViewModel,
+        ),
       ),
     );
   }
 
   void _showHistoryDetails(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -338,6 +349,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
               _buildDetailRow('Grade:', history.gradeLabel),
               _buildDetailRow('Confidence:', history.confidencePercentage),
               _buildDetailRow('Date:', history.formattedDate),
+              if (isAdmin) ...[_buildDetailRow('Model:', history.model)],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

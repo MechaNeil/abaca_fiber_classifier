@@ -9,5 +9,6 @@ abstract class ClassificationRepository {
     String imagePath,
     List<String> labels,
   );
+  Future<String> getCurrentModelName();
   void dispose();
 }

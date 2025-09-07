@@ -4,20 +4,24 @@ import '../../domain/entities/model_info.dart';
 import '../../domain/usecases/initialize_model_usecase.dart';
 import '../../domain/usecases/pick_image_usecase.dart';
 import '../../domain/usecases/classify_image_usecase.dart';
+import '../../domain/usecases/get_current_model_usecase.dart';
 import '../../core/utils/image_utils.dart';
 
 class ClassificationViewModel extends ChangeNotifier {
   final InitializeModelUseCase _initializeModelUseCase;
   final PickImageUseCase _pickImageUseCase;
   final ClassifyImageUseCase _classifyImageUseCase;
+  final GetCurrentModelUseCase _getCurrentModelUseCase;
 
   ClassificationViewModel({
     required InitializeModelUseCase initializeModelUseCase,
     required PickImageUseCase pickImageUseCase,
     required ClassifyImageUseCase classifyImageUseCase,
+    required GetCurrentModelUseCase getCurrentModelUseCase,
   }) : _initializeModelUseCase = initializeModelUseCase,
        _pickImageUseCase = pickImageUseCase,
-       _classifyImageUseCase = classifyImageUseCase;
+       _classifyImageUseCase = classifyImageUseCase,
+       _getCurrentModelUseCase = getCurrentModelUseCase;
 
   // State variables
   bool _isLoading = false;
@@ -167,6 +171,16 @@ class ClassificationViewModel extends ChangeNotifier {
     _imagePath = null;
     _classificationResult = null;
     _pythonStyleOutput = null;
+  }
+
+  /// Gets the current model name being used
+  Future<String> getCurrentModelName() async {
+    try {
+      return await _getCurrentModelUseCase.execute();
+    } catch (e) {
+      // Return default if error occurs
+      return 'mobilenetv3small_b2.tflite';
+    }
   }
 
   @override

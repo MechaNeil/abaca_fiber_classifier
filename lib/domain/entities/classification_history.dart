@@ -10,6 +10,7 @@ class ClassificationHistory {
   final List<double> probabilities;
   final DateTime timestamp;
   final int? userId; // Optional: for multi-user support
+  final String model; // Model used for classification
 
   const ClassificationHistory({
     this.id,
@@ -19,6 +20,7 @@ class ClassificationHistory {
     required this.probabilities,
     required this.timestamp,
     this.userId,
+    this.model = 'mobilenetv3small_b2.tflite',
   });
 
   /// Creates a ClassificationHistory from a database map
@@ -31,6 +33,7 @@ class ClassificationHistory {
       probabilities: _parseProbabilities(map['probabilities']),
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
       userId: map['userId'],
+      model: map['model'] ?? 'mobilenetv3small_b2.tflite',
     );
   }
 
@@ -44,6 +47,7 @@ class ClassificationHistory {
       'probabilities': _encodeProbabilities(probabilities),
       'timestamp': timestamp.millisecondsSinceEpoch,
       'userId': userId,
+      'model': model,
     };
   }
 
@@ -56,6 +60,7 @@ class ClassificationHistory {
     List<double>? probabilities,
     DateTime? timestamp,
     int? userId,
+    String? model,
   }) {
     return ClassificationHistory(
       id: id ?? this.id,
@@ -65,6 +70,7 @@ class ClassificationHistory {
       probabilities: probabilities ?? this.probabilities,
       timestamp: timestamp ?? this.timestamp,
       userId: userId ?? this.userId,
+      model: model ?? this.model,
     );
   }
 
@@ -174,7 +180,8 @@ class ClassificationHistory {
         other.imagePath == imagePath &&
         other.predictedLabel == predictedLabel &&
         other.confidence == confidence &&
-        other.timestamp == timestamp;
+        other.timestamp == timestamp &&
+        other.model == model;
   }
 
   @override
@@ -183,6 +190,7 @@ class ClassificationHistory {
         imagePath.hashCode ^
         predictedLabel.hashCode ^
         confidence.hashCode ^
-        timestamp.hashCode;
+        timestamp.hashCode ^
+        model.hashCode;
   }
 }

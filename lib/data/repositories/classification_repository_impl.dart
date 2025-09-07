@@ -58,6 +58,15 @@ class ClassificationRepositoryImpl implements ClassificationRepository {
   }
 
   @override
+  Future<String> getCurrentModelName() async {
+    try {
+      return await _mlService.getCurrentModelName();
+    } catch (e) {
+      throw Exception('Failed to get current model name: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _mlService.dispose();
   }

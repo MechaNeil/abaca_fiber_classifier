@@ -109,6 +109,7 @@ class HistoryViewModel extends ChangeNotifier {
     required double confidence,
     required List<double> probabilities,
     int? userId,
+    String model = 'mobilenetv3small_b2.tflite',
   }) async {
     try {
       await _saveHistoryUseCase.execute(
@@ -117,6 +118,7 @@ class HistoryViewModel extends ChangeNotifier {
         confidence: confidence,
         probabilities: probabilities,
         userId: userId,
+        model: model,
       );
 
       // Reload data after saving

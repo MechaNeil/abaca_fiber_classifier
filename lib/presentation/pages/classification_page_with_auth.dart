@@ -7,6 +7,8 @@ import '../widgets/recent_history_widget.dart';
 import 'classification_results_page.dart';
 import 'history_page.dart';
 import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
+import '../../features/admin/presentation/viewmodels/admin_view_model.dart';
+import '../../features/admin/presentation/pages/admin_page.dart';
 
 /// Classification page with authentication support
 ///
@@ -16,12 +18,14 @@ class ClassificationPageWithAuth extends StatefulWidget {
   final ClassificationViewModel viewModel;
   final AuthViewModel authViewModel;
   final HistoryViewModel historyViewModel;
+  final AdminViewModel? adminViewModel;
 
   const ClassificationPageWithAuth({
     super.key,
     required this.viewModel,
     required this.authViewModel,
     required this.historyViewModel,
+    this.adminViewModel,
   });
 
   @override
@@ -111,12 +115,16 @@ class _ClassificationPageWithAuthState
         final user = widget.authViewModel.loggedInUser;
 
         try {
+          // Get the current model name being used
+          final currentModel = await widget.viewModel.getCurrentModelName();
+
           await widget.historyViewModel.saveClassification(
             imagePath: imagePath,
             predictedLabel: result.predictedLabel,
             confidence: result.confidence,
             probabilities: result.probabilities,
             userId: user?.id,
+            model: currentModel,
           );
         } catch (e) {
           // Log error but don't prevent navigation
@@ -169,9 +177,22 @@ class _ClassificationPageWithAuthState
   void _showViewHistory() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => HistoryPage(viewModel: widget.historyViewModel),
+        builder: (context) => HistoryPage(
+          viewModel: widget.historyViewModel,
+          authViewModel: widget.authViewModel,
+        ),
       ),
     );
+  }
+
+  void _navigateToAdminTools() {
+    if (widget.adminViewModel != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AdminPage(viewModel: widget.adminViewModel!),
+        ),
+      );
+    }
   }
 
   @override
@@ -189,12 +210,23 @@ class _ClassificationPageWithAuthState
           size: 28,
         ),
         actions: [
+          // Admin tools button (only for admin users)
+          if (user != null && user.isAdmin && widget.adminViewModel != null)
+            IconButton(
+              onPressed: _navigateToAdminTools,
+              icon: const Icon(Icons.admin_panel_settings, color: Colors.blue),
+              tooltip: 'Admin Tools',
+            ),
           // User profile icon
           if (user != null)
             PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'logout') {
                   _showLogoutDialog();
+                } else if (value == 'admin' &&
+                    user.isAdmin &&
+                    widget.adminViewModel != null) {
+                  _navigateToAdminTools();
                 }
               },
               itemBuilder: (context) => [
@@ -217,10 +249,35 @@ class _ClassificationPageWithAuthState
                           fontSize: 12,
                         ),
                       ),
+                      if (user.isAdmin)
+                        const Text(
+                          'Administrator',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 const PopupMenuDivider(),
+                if (user.isAdmin && widget.adminViewModel != null)
+                  const PopupMenuItem<String>(
+                    value: 'admin',
+                    child: Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          'Admin Tools',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (user.isAdmin && widget.adminViewModel != null)
+                  const PopupMenuDivider(),
                 const PopupMenuItem<String>(
                   value: 'logout',
                   child: Row(
@@ -404,7 +461,10 @@ class _ClassificationPageWithAuthState
             const SizedBox(height: 40),
 
             // Recent Section
-            RecentHistoryWidget(historyViewModel: widget.historyViewModel),
+            RecentHistoryWidget(
+              historyViewModel: widget.historyViewModel,
+              authViewModel: widget.authViewModel,
+            ),
           ],
         ),
       ),
