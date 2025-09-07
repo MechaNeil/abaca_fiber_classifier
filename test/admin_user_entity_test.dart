@@ -7,7 +7,7 @@ void main() {
     test('should create admin user with correct properties', () {
       // Arrange
       final hashedPassword = BCrypt.hashpw('admin29', BCrypt.gensalt());
-      
+
       // Act
       final adminUser = User(
         firstName: 'Admin',
@@ -25,7 +25,10 @@ void main() {
       expect(adminUser.role, 'admin');
       expect(adminUser.isAdmin, isTrue);
       expect(adminUser.password, isNot('admin29')); // Should be hashed
-      expect(BCrypt.checkpw('admin29', adminUser.password), isTrue); // Password should verify
+      expect(
+        BCrypt.checkpw('admin29', adminUser.password),
+        isTrue,
+      ); // Password should verify
     });
 
     test('should identify admin role correctly', () {
@@ -101,7 +104,10 @@ void main() {
       expect(adminUser.lastName, 'User');
       expect(adminUser.username, 'admin');
       expect(adminUser.password, 'hashedPassword');
-      expect(adminUser.createdAt.millisecondsSinceEpoch, now.millisecondsSinceEpoch);
+      expect(
+        adminUser.createdAt.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+      );
       expect(adminUser.role, 'admin');
       expect(adminUser.isAdmin, isTrue);
     });
