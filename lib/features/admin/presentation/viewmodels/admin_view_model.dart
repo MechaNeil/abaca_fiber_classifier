@@ -65,8 +65,7 @@ class AdminViewModel extends ChangeNotifier {
       _availableModels = await _manageModelsUseCase.getAvailableModels();
       _currentModel = await _manageModelsUseCase.getCurrentModel();
     } catch (e) {
-      _error =
-          'Unable to load available models. Please check your device storage and try restarting the app.';
+      _error = 'Failed to load models: ${e.toString()}';
     }
 
     _isLoadingModels = false;
@@ -102,8 +101,7 @@ class AdminViewModel extends ChangeNotifier {
 
         // Validate file extension manually if using FileType.any
         if (!fileName.toLowerCase().endsWith('.tflite')) {
-          _error =
-              'Invalid file type selected. Please choose a TensorFlow Lite model file (.tflite)';
+          _error = 'Please select a valid TensorFlow Lite model file (.tflite)';
           notifyListeners();
           return;
         }
@@ -116,7 +114,7 @@ class AdminViewModel extends ChangeNotifier {
         await importModel(filePath, modelName);
       }
     } catch (e) {
-      _error = 'Unable to access the selected file. Please try again.';
+      _error = 'Failed to pick file: ${e.toString()}';
       notifyListeners();
     }
   }
@@ -134,14 +132,12 @@ class AdminViewModel extends ChangeNotifier {
         modelName: modelName,
       );
 
-      _successMessage =
-          'Model "$modelName" has been successfully imported and is ready to use';
+      _successMessage = 'Model "$modelName" imported successfully';
 
       // Reload models to include the new one
       await loadModels();
     } catch (e) {
-      _error =
-          'Unable to import the model. Please ensure the file is a valid TensorFlow Lite model and try again.';
+      _error = 'Failed to import model: ${e.toString()}';
     }
 
     _isImporting = false;
@@ -170,8 +166,7 @@ class AdminViewModel extends ChangeNotifier {
 
           // Only update UI state if model reload was successful
           _currentModel = model;
-          _successMessage =
-              'Successfully switched to "${model.name}". The new model is now active for all classifications.';
+          _successMessage = 'Successfully switched to model: ${model.name}';
         } catch (reloadError) {
           debugPrint('Model reload failed: $reloadError');
 
@@ -186,41 +181,26 @@ class AdminViewModel extends ChangeNotifier {
               // Keep the UI showing the previous model since that's what's actually active
               _currentModel = previousModel;
 
-              // Provide detailed error message based on the type of error
-              if (reloadError.toString().contains('FULLY_CONNECTED') ||
-                  reloadError.toString().contains('builtin opcode')) {
-                _error =
-                    'The model "${model.name}" is not compatible with this app version. Please use a different model. Your previous model has been restored.';
-              } else if (reloadError.toString().contains(
-                'Unable to create interpreter',
-              )) {
-                _error =
-                    'The model "${model.name}" could not be loaded - it may be corrupted. Please try a different model file. Your previous model has been restored.';
-              } else {
-                _error =
-                    'Unable to switch to "${model.name}". Your previous model has been restored and will continue to work normally.';
-              }
+              // Provide user-friendly error message
+              _error = _formatUserFriendlyError(reloadError, model.name, true);
             } catch (revertError) {
               _currentModel = previousModel; // Keep UI consistent
-              _error =
-                  'Unable to switch to "${model.name}" and could not restore the previous model. Please restart the app to fix this issue.';
+              _error = _formatCriticalError(model.name, revertError);
             }
           } else {
             // No previous model to revert to
-            _error =
-                'Unable to load the selected model "${model.name}". Please try a different model or restart the app.';
+            _error = _formatUserFriendlyError(reloadError, model.name, false);
           }
         }
       } else {
         // No classification view model available, just update the path
         _currentModel = model;
         _successMessage =
-            'Model updated to "${model.name}". Please restart the app to begin using the new model.';
+            'Model path updated to: ${model.name}. Restart the app to use the new model.';
       }
     } catch (e) {
       // Failed to set active model in the first place
-      _error =
-          'Unable to switch to the selected model. Please try again or choose a different model.';
+      _error = 'Failed to switch model: ${e.toString()}';
       _currentModel = previousModel; // Restore previous model reference
     }
 
@@ -246,20 +226,21 @@ class AdminViewModel extends ChangeNotifier {
 
           // Update UI state only after successful reload
           _currentModel = await _manageModelsUseCase.getCurrentModel();
-          _successMessage =
-              'Successfully restored the default model. You can now use the app normally.';
+          _successMessage = 'Successfully reverted to default model';
         } catch (reloadError) {
           debugPrint('Failed to reload default model: $reloadError');
-          _error =
-              'The default model has been restored but needs an app restart to take effect. Please close and reopen the app.';
+          _error = _formatUserFriendlyError(
+            reloadError,
+            'default model',
+            false,
+          );
         }
       } else {
         _currentModel = await _manageModelsUseCase.getCurrentModel();
-        _successMessage = 'Default model has been restored successfully';
+        _successMessage = 'Reverted to default model';
       }
     } catch (e) {
-      _error =
-          'Unable to restore the default model. Please restart the app or contact support.';
+      _error = 'Failed to revert to default model: ${e.toString()}';
     }
 
     _isSwitchingModel = false;
@@ -274,14 +255,12 @@ class AdminViewModel extends ChangeNotifier {
 
     try {
       await _manageModelsUseCase.deleteModel(model.path);
-      _successMessage =
-          'Model "${model.name}" has been successfully removed from your device';
+      _successMessage = 'Model "${model.name}" deleted successfully';
 
       // Reload models to reflect the deletion
       await loadModels();
     } catch (e) {
-      _error =
-          'Unable to remove the model. Please try again or restart the app.';
+      _error = 'Failed to delete model: ${e.toString()}';
       notifyListeners();
     }
   }
@@ -295,15 +274,12 @@ class AdminViewModel extends ChangeNotifier {
 
     try {
       await _exportLogsUseCase.execute();
-      _successMessage =
-          'Your data has been successfully exported to your device';
+      _successMessage = 'Logs exported successfully';
     } catch (e) {
       if (e is UnimplementedError) {
-        _error =
-            'The export feature is coming soon! This functionality will be available in a future update.';
+        _error = 'Export feature will be available in a future update';
       } else {
-        _error =
-            'Unable to export your data. Please check your device storage and try again.';
+        _error = 'Failed to export logs: ${e.toString()}';
       }
     }
 
@@ -354,5 +330,95 @@ class AdminViewModel extends ChangeNotifier {
   /// Check if a model is currently active
   bool isCurrentModel(ModelEntity model) {
     return _currentModel?.path == model.path;
+  }
+
+  /// Format user-friendly error messages for model loading failures
+  String _formatUserFriendlyError(
+    dynamic error,
+    String modelName,
+    bool hasReverted,
+  ) {
+    final errorString = error.toString();
+
+    // Handle critical errors where both models failed
+    if (errorString.contains(
+      'Both target model and default model failed to load',
+    )) {
+      return '❌ Unable to load any model files\n\n'
+          'The app encountered a serious issue and cannot load either the selected model or the default backup model. '
+          'This usually means:\n\n'
+          '• Model files may be corrupted or missing\n'
+          '• Device storage may be full or corrupted\n'
+          '• App permissions may be restricted\n\n'
+          '💡 Solution: Please restart the app or reinstall if the problem persists.';
+    }
+
+    // Handle TensorFlow Lite interpreter creation errors
+    if (errorString.contains('Failed to create TensorFlow Lite interpreter')) {
+      return hasReverted
+          ? '❌ Model incompatible with device\n\n'
+                'The model "$modelName" cannot run on this device because:\n\n'
+                '• The model format is incompatible\n'
+                '• The model uses unsupported features\n'
+                '• The model file may be corrupted\n\n'
+                '✅ Automatically switched back to the previous working model.'
+          : '❌ Model incompatible with device\n\n'
+                'The model "$modelName" cannot run on this device because the model format is incompatible or corrupted.\n\n'
+                '💡 Try using a different TensorFlow Lite model file.';
+    }
+
+    // Handle compatibility errors
+    if (errorString.contains('FULLY_CONNECTED') ||
+        errorString.contains('builtin opcode') ||
+        errorString.contains('Didn\'t find op for builtin opcode')) {
+      return hasReverted
+          ? '❌ Model not compatible\n\n'
+                'The model "$modelName" uses advanced features that are not supported by this app version.\n\n'
+                '💡 Please use a standard TensorFlow Lite v2.x model.\n\n'
+                '✅ Automatically switched back to the previous working model.'
+          : '❌ Model not compatible\n\n'
+                'The model "$modelName" uses advanced features that are not supported by this app version.\n\n'
+                '💡 Please use a standard TensorFlow Lite v2.x model.';
+    }
+
+    // Handle file not found errors
+    if (errorString.contains('Model file not found') ||
+        errorString.contains('No such file or directory')) {
+      return hasReverted
+          ? '❌ Model file missing\n\n'
+                'The model "$modelName" file could not be found on the device. It may have been moved or deleted.\n\n'
+                '✅ Automatically switched back to the previous working model.'
+          : '❌ Model file missing\n\n'
+                'The model "$modelName" file could not be found on the device. It may have been moved or deleted.\n\n'
+                '💡 Try importing the model again.';
+    }
+
+    // Handle generic Unable to create interpreter errors
+    if (errorString.contains('Unable to create interpreter')) {
+      return hasReverted
+          ? '❌ Cannot load model\n\n'
+                'The model "$modelName" appears to be corrupted or incompatible with this device.\n\n'
+                '✅ Automatically switched back to the previous working model.'
+          : '❌ Cannot load model\n\n'
+                'The model "$modelName" appears to be corrupted or incompatible with this device.\n\n'
+                '💡 Try using a different model file.';
+    }
+
+    // Default fallback error message
+    return hasReverted
+        ? '❌ Failed to switch models\n\n'
+              'Could not load "$modelName". The error was:\n$errorString\n\n'
+              '✅ Automatically switched back to the previous working model.'
+        : '❌ Failed to load model\n\n'
+              'Could not load "$modelName". The error was:\n$errorString\n\n'
+              '💡 Please try a different model file.';
+  }
+
+  /// Format critical error messages when reverting also fails
+  String _formatCriticalError(String modelName, dynamic revertError) {
+    return '🚨 Critical Error\n\n'
+        'Failed to switch to "$modelName" and could not restore the previous model.\n\n'
+        'The app is now in an unstable state. Please restart the app to restore normal functionality.\n\n'
+        'Error details: ${revertError.toString()}';
   }
 }

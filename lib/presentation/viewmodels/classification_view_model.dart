@@ -100,7 +100,7 @@ class ClassificationViewModel extends ChangeNotifier {
         );
       }
     } catch (e) {
-      _setError('Failed to reload model: $e');
+      _setError(_formatModelError(e));
       debugPrint('Model reload error: $e');
       // Rethrow the exception so AdminViewModel can handle it properly
       rethrow;
@@ -220,6 +220,44 @@ class ClassificationViewModel extends ChangeNotifier {
       // Return default if error occurs
       return 'mobilenetv3small_b2.tflite';
     }
+  }
+
+  /// Format model loading errors for better user experience
+  String _formatModelError(dynamic error) {
+    final errorString = error.toString();
+
+    // Handle critical errors where both models failed
+    if (errorString.contains(
+      'Both target model and default model failed to load',
+    )) {
+      return 'Unable to load any model files. Please restart the app.';
+    }
+
+    // Handle TensorFlow Lite interpreter creation errors
+    if (errorString.contains('Failed to create TensorFlow Lite interpreter')) {
+      return 'Model file is incompatible or corrupted';
+    }
+
+    // Handle compatibility errors
+    if (errorString.contains('FULLY_CONNECTED') ||
+        errorString.contains('builtin opcode') ||
+        errorString.contains('Didn\'t find op for builtin opcode')) {
+      return 'Model uses unsupported features';
+    }
+
+    // Handle file not found errors
+    if (errorString.contains('Model file not found') ||
+        errorString.contains('No such file or directory')) {
+      return 'Model file not found on device';
+    }
+
+    // Handle generic Unable to create interpreter errors
+    if (errorString.contains('Unable to create interpreter')) {
+      return 'Cannot load model - file may be corrupted';
+    }
+
+    // Default fallback error message
+    return 'Failed to load model';
   }
 
   @override
