@@ -326,6 +326,7 @@ class _AdminPageState extends State<AdminPage>
                         '• Classification history\n'
                         '• Model performance metrics\n'
                         '• User activity logs\n'
+                        '• Database table exports\n'
                         '• CSV and JSON export formats',
                         style: TextStyle(color: Colors.grey),
                       ),
