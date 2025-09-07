@@ -84,6 +84,32 @@ class HistoryRepositoryImpl implements HistoryRepository {
   }
 
   @override
+  Future<List<ClassificationHistory>> getTodayHistory() async {
+    try {
+      final db = await _databaseService.database;
+
+      // Get today's date in the format stored in the database
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      final List<Map<String, dynamic>> maps = await db.query(
+        'classification_history',
+        where: 'timestamp >= ? AND timestamp < ?',
+        whereArgs: [
+          todayStart.millisecondsSinceEpoch,
+          todayEnd.millisecondsSinceEpoch,
+        ],
+        orderBy: 'timestamp DESC',
+      );
+
+      return maps.map((map) => ClassificationHistory.fromMap(map)).toList();
+    } catch (e) {
+      throw Exception('Failed to retrieve today\'s history: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<List<ClassificationHistory>> getHistoryByGrade(
     String grade, {
     int? limit,

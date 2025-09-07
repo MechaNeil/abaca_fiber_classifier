@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/register_user_usecase.dart';
 import '../../domain/usecases/login_user_usecase.dart';
+import '../../domain/repositories/auth_repository.dart';
 
 /// ViewModel for handling authentication state and operations
 ///
@@ -10,12 +11,18 @@ import '../../domain/usecases/login_user_usecase.dart';
 class AuthViewModel extends ChangeNotifier {
   final RegisterUserUseCase _registerUserUseCase;
   final LoginUserUseCase _loginUserUseCase;
+  final AuthRepository _authRepository;
 
   AuthViewModel({
     required RegisterUserUseCase registerUserUseCase,
     required LoginUserUseCase loginUserUseCase,
+    required AuthRepository authRepository,
   }) : _registerUserUseCase = registerUserUseCase,
-       _loginUserUseCase = loginUserUseCase;
+       _loginUserUseCase = loginUserUseCase,
+       _authRepository = authRepository {
+    // Ensure admin user exists when ViewModel is initialized
+    _ensureAdminUserExists();
+  }
 
   // Loading states
   bool _isRegistering = false;
@@ -187,6 +194,37 @@ class AuthViewModel extends ChangeNotifier {
     // Only notify if there were actually changes
     if (shouldNotify) {
       notifyListeners();
+    }
+  }
+
+  /// Ensures the default admin user exists
+  ///
+  /// This method is called during ViewModel initialization to ensure
+  /// there's always an admin user available with credentials:
+  /// - Username: admin
+  /// - Password: admin29
+  Future<void> _ensureAdminUserExists() async {
+    try {
+      await _authRepository.ensureAdminUserExists();
+      debugPrint('Admin user verification completed');
+    } catch (e) {
+      debugPrint('Error ensuring admin user exists: $e');
+      // Don't throw or notify listeners as this is a background operation
+      // The app should continue to function even if this fails
+    }
+  }
+
+  /// Manually trigger admin user creation
+  ///
+  /// This method can be called to manually ensure the admin user exists.
+  /// Useful for troubleshooting or manual admin user creation.
+  Future<void> createAdminUserIfNeeded() async {
+    try {
+      await _authRepository.ensureAdminUserExists();
+      debugPrint('Admin user created/verified successfully');
+    } catch (e) {
+      debugPrint('Error creating admin user: $e');
+      rethrow; // Re-throw so calling code can handle the error
     }
   }
 }

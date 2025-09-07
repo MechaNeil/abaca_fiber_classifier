@@ -45,6 +45,11 @@ abstract class HistoryRepository {
   /// Returns: A list of recent classification history records
   Future<List<ClassificationHistory>> getRecentHistory({int limit = 10});
 
+  /// Retrieves classification history records for today
+  ///
+  /// Returns: A list of classification history records from today
+  Future<List<ClassificationHistory>> getTodayHistory();
+
   /// Retrieves history records by grade/classification
   ///
   /// Parameters:

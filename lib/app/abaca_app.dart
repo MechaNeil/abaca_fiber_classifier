@@ -91,6 +91,7 @@ class _AbacaAppState extends State<AbacaApp> {
       _authViewModel = AuthViewModel(
         registerUserUseCase: registerUserUseCase,
         loginUserUseCase: loginUserUseCase,
+        authRepository: _authRepository,
       );
 
       // Initialize history repository
