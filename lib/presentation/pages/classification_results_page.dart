@@ -6,6 +6,8 @@ import '../../core/utils/grade_colors.dart';
 import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 import '../viewmodels/classification_view_model.dart';
 
+const double kConfidenceThreshold = 0.5;
+
 class ClassificationResultsPage extends StatefulWidget {
   final String imagePath;
   final ClassificationResult? result;
@@ -183,7 +185,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ] else if (widget.result != null &&
-                      widget.result!.confidence <= 0.5) ...[
+                      widget.result!.confidence <= kConfidenceThreshold) ...[
                     // Low Confidence State (≤50%)
                     const Icon(Icons.warning, size: 60, color: Colors.amber),
                     const SizedBox(height: 16),
@@ -345,7 +347,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     // Grade Distribution - Show for admin users or non-admin users with ≥50% confidence
                     if (isAdmin ||
-                        (widget.result!.confidence > 0.5)) ...[
+                        (widget.result!.confidence > kConfidenceThreshold)) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
@@ -440,7 +442,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     onPressed:
                         (widget.isError ||
                             (widget.result != null &&
-                                widget.result!.confidence <= 0.5))
+                                widget.result!.confidence <= kConfidenceThreshold))
                         ? _showClassificationGuide
                         : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
@@ -453,7 +455,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     child: Text(
                       (widget.isError ||
                               (widget.result != null &&
-                                  widget.result!.confidence <= 0.5))
+                                  widget.result!.confidence <= kConfidenceThreshold))
                           ? 'View Guide'
                           : 'Done',
                       style: const TextStyle(
@@ -470,7 +472,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     onPressed:
                         (widget.isError ||
                             (widget.result != null &&
-                                widget.result!.confidence <= 0.5))
+                                widget.result!.confidence <= kConfidenceThreshold))
                         ? widget.onRetakePhoto
                         : widget.onNewClassification,
                     style: ElevatedButton.styleFrom(
@@ -493,8 +495,8 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                         Flexible(
                           child: Text(
                             (widget.isError ||
-                                    (widget.result != null &&
-                                        widget.result!.confidence <= 0.5))
+                            (widget.result != null &&
+                                        widget.result!.confidence <= kConfidenceThreshold))
                                 ? 'Retake Photo'
                                 : 'New',
                             style: const TextStyle(
