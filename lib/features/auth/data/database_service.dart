@@ -15,6 +15,8 @@ import '../domain/entities/user.dart';
 /// final dbService = DatabaseService.instance;
 /// await dbService.init(); // Initialize database
 /// ```
+const int kDatabaseVersion = 4;
+
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
   static Database? _database;
@@ -42,7 +44,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4, // Increment version for model column
+      version: kDatabaseVersion, // Use constant for version
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );

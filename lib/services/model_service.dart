@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 /// Service for managing model paths and current model selection
 class ModelService {
@@ -39,8 +40,13 @@ class ModelService {
   /// Check if a model file exists
   static Future<bool> modelExists(String modelPath) async {
     if (modelPath.startsWith('assets/')) {
-      // For asset models, we assume they exist
-      return true;
+      // For asset models, verify existence using rootBundle.load
+      try {
+        await rootBundle.load(modelPath);
+        return true;
+      } catch (e) {
+        return false;
+      }
     } else {
       // For file models, check if file exists
       final file = File(modelPath);
