@@ -475,6 +475,7 @@ class _ClassificationPageWithAuthState
   @override
   Widget build(BuildContext context) {
     final user = widget.authViewModel.loggedInUser;
+    final canClassify = _canClassify();
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -646,9 +647,9 @@ class _ClassificationPageWithAuthState
               width: 200,
               height: 50,
               child: ElevatedButton(
-                onPressed: _canClassify() ? _showImageSourceModal : null,
+                onPressed: canClassify ? _showImageSourceModal : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _canClassify() ? Colors.green : Colors.grey,
+                  backgroundColor: canClassify ? Colors.green : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -659,12 +660,12 @@ class _ClassificationPageWithAuthState
                   children: [
                     Icon(
                       Icons.camera_alt,
-                      color: _canClassify() ? Colors.white : Colors.grey[300],
+                      color: canClassify ? Colors.white : Colors.grey[300],
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _canClassify() ? 'Classify New' : 'Model Error',
+                      canClassify ? 'Classify New' : 'Model Error',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
