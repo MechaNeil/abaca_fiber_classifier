@@ -29,6 +29,7 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
+  static const double confidenceThreshold = 0.5;
   late TabController _tabController;
   bool _showAllGrades = false; // Toggle state for showing all grades
 
@@ -203,7 +204,7 @@ class _HistoryPageState extends State<HistoryPage>
     } else if (selectedFilter == 'Cannot be classified') {
       // Show only low confidence entries (for non-admin users)
       return widget.viewModel.allHistory
-          .where((history) => history.confidence <= 0.5)
+          .where((history) => history.confidence <= confidenceThreshold)
           .toList();
     } else {
       // Standard grade filtering
@@ -218,7 +219,7 @@ class _HistoryPageState extends State<HistoryPage>
             .where(
               (history) =>
                   history.predictedLabel == selectedFilter &&
-                  history.confidence > 0.5,
+                  history.confidence > confidenceThreshold,
             )
             .toList();
       }
@@ -362,10 +363,10 @@ class _HistoryPageState extends State<HistoryPage>
             .where((h) => h.predictedLabel == grade)
             .toList();
         final hasHighConfidenceEntries = gradeEntries.any(
-          (h) => h.confidence > 0.5,
+          (h) => h.confidence > confidenceThreshold,
         );
         final hasLowConfidenceForGrade = gradeEntries.any(
-          (h) => h.confidence <= 0.5,
+          (h) => h.confidence <= confidenceThreshold,
         );
 
         if (hasHighConfidenceEntries) {
@@ -431,7 +432,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildHistoryItem(ClassificationHistory history) {
     final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
-    final bool isLowConfidence = history.confidence <= 0.5;
+    final bool isLowConfidence = history.confidence <= confidenceThreshold;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

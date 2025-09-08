@@ -273,16 +273,14 @@ class MLService {
       // If loading fails, try to revert to default and load again
       try {
         await ModelService.revertToDefault();
-        await loadModel();
-
-        // Throw a specific error that includes both the original error and fallback info
-        throw Exception(
-          'Failed to load model: ${e.toString()}. Automatically reverted to default model.',
-        );
+        // Try loading the default model
+        final defaultModelInfo = await loadModel();
+        // Return the default model info if successful
+        return defaultModelInfo;
       } catch (fallbackError) {
         debugPrint('Fallback to default model also failed: $fallbackError');
         throw Exception(
-          'Target model failed to load: ${e.toString()}. Default model is now active.',
+          'Target model failed to load: ${e.toString()}. Default model also failed: ${fallbackError.toString()}',
         );
       }
     }
