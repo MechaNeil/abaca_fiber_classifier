@@ -40,9 +40,9 @@ class ModelService {
   /// Check if a model file exists
   static Future<bool> modelExists(String modelPath) async {
     if (modelPath.startsWith('assets/')) {
-      // For asset models, verify existence using rootBundle.loadString (lighter operation)
+      // For asset models, verify existence using rootBundle.load (for binary files)
       try {
-        await rootBundle.loadString(modelPath);
+        await rootBundle.load(modelPath);
         return true;
       } catch (e) {
         return false;

@@ -37,6 +37,9 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
   bool _isExpanded = false; // State to track if grade distribution is expanded
   String? _currentModelName; // Track current model name for admin display
 
+  bool get isAdmin =>
+      widget.authViewModel?.loggedInUser?.isAdmin == true;
+
   @override
   void initState() {
     super.initState();
@@ -44,8 +47,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
   }
 
   Future<void> _loadCurrentModelName() async {
-    if (widget.authViewModel?.loggedInUser?.isAdmin == true &&
-        widget.classificationViewModel != null) {
+    if (isAdmin && widget.classificationViewModel != null) {
       try {
         final modelName = await widget.classificationViewModel!
             .getCurrentModelName();
@@ -187,8 +189,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     const SizedBox(height: 16),
 
                     // Show different messages based on user role
-                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
-                        true) ...[
+                    if (isAdmin) ...[
                       // Admin users see the original message
                       const Text(
                         "We couldn't classify\nthe fiber",
@@ -227,8 +228,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     const SizedBox(height: 24),
 
                     // Grade Distribution for Low Confidence - Only show for admin users
-                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
-                        true) ...[
+                    if (isAdmin) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
@@ -323,8 +323,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     const SizedBox(height: 16),
 
                     // Admin-only: Model Information
-                    if (widget.authViewModel?.loggedInUser?.isAdmin == true &&
-                        _currentModelName != null) ...[
+                    if (isAdmin && _currentModelName != null) ...[
                       Text(
                         'Model: $_currentModelName',
                         style: TextStyle(
@@ -345,7 +344,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     const SizedBox(height: 24),
 
                     // Grade Distribution - Show for admin users or non-admin users with ≥50% confidence
-                    if (widget.authViewModel?.loggedInUser?.isAdmin == true ||
+                    if (isAdmin ||
                         (widget.result!.confidence > 0.5)) ...[
                       Container(
                         width: double.infinity,

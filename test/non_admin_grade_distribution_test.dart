@@ -17,8 +17,8 @@ void main() {
           result: result,
           imagePath: 'test_path.jpg',
           labels: mockLabels,
-          // Using null authViewModel to simulate non-admin behavior
-          // (authViewModel?.loggedInUser?.isAdmin == true will be false)
+          // Setting authViewModel to null simulates a non-admin user scenario,
+          // as the actual logic checks for null or non-admin status (authViewModel?.loggedInUser?.isAdmin == true).
           authViewModel: null,
         ),
       );

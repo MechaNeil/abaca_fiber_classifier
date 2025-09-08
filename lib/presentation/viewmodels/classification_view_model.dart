@@ -223,7 +223,7 @@ class ClassificationViewModel extends ChangeNotifier {
   }
 
   /// Format model loading errors for better user experience
-  String _formatModelError(dynamic error) {
+  String _formatModelError(Object error) {
     final errorString = error.toString();
 
     // Handle critical errors where both models failed
