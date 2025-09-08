@@ -85,7 +85,7 @@ void main() {
         lastName: 'Administrator',
         password: 'admin29',
         createdAt: DateTime.now(),
-        role: 'admin',
+        role: UserRole.admin,
       );
 
       final regularUser = User(
@@ -95,7 +95,7 @@ void main() {
         lastName: 'User',
         password: 'password123',
         createdAt: DateTime.now(),
-        role: 'user',
+        role: UserRole.user,
       );
 
       expect(adminUser.isAdmin, isTrue);

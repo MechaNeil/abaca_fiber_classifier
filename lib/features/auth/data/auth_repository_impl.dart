@@ -178,7 +178,7 @@ class AuthRepositoryImpl implements AuthRepository {
         username: 'admin',
         password: hashedPassword,
         createdAt: DateTime.now(),
-        role: 'admin',
+        role: UserRole.admin,
       );
 
       await db.insert('users', adminUser.toMap());

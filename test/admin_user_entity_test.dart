@@ -15,14 +15,14 @@ void main() {
         username: 'admin',
         password: hashedPassword,
         createdAt: DateTime.now(),
-        role: 'admin',
+        role: UserRole.admin,
       );
 
       // Assert
       expect(adminUser.username, 'admin');
       expect(adminUser.firstName, 'Admin');
       expect(adminUser.lastName, 'User');
-      expect(adminUser.role, 'admin');
+      expect(adminUser.role, UserRole.admin);
       expect(adminUser.isAdmin, isTrue);
       expect(adminUser.password, isNot('admin29')); // Should be hashed
       expect(
@@ -39,7 +39,7 @@ void main() {
         username: 'admin',
         password: 'hashedPassword',
         createdAt: DateTime.now(),
-        role: 'admin',
+        role: UserRole.admin,
       );
 
       final regularUser = User(
@@ -48,7 +48,7 @@ void main() {
         username: 'johndoe',
         password: 'hashedPassword',
         createdAt: DateTime.now(),
-        role: 'user',
+        role: UserRole.user,
       );
 
       // Assert
@@ -66,7 +66,7 @@ void main() {
         username: 'admin',
         password: 'hashedPassword',
         createdAt: now,
-        role: 'admin',
+        role: UserRole.admin,
       );
 
       // Act
@@ -108,7 +108,7 @@ void main() {
         adminUser.createdAt.millisecondsSinceEpoch,
         now.millisecondsSinceEpoch,
       );
-      expect(adminUser.role, 'admin');
+      expect(adminUser.role, UserRole.admin);
       expect(adminUser.isAdmin, isTrue);
     });
   });

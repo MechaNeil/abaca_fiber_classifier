@@ -1,3 +1,19 @@
+enum UserRole { admin, user }
+
+extension UserRoleExtension on UserRole {
+  String get name => toString().split('.').last;
+
+  static UserRole fromString(String role) {
+    switch (role) {
+      case 'admin':
+        return UserRole.admin;
+      case 'user':
+      default:
+        return UserRole.user;
+    }
+  }
+}
+
 class User {
   final int? id;
   final String firstName;
@@ -5,7 +21,7 @@ class User {
   final String username;
   final String password;
   final DateTime createdAt;
-  final String role; // 'admin' or 'user'
+  final UserRole role;
 
   const User({
     this.id,
@@ -14,10 +30,10 @@ class User {
     required this.username,
     required this.password,
     required this.createdAt,
-    this.role = 'user', // Default role is 'user'
+    this.role = UserRole.user,
   });
 
-  bool get isAdmin => role == 'admin';
+  bool get isAdmin => role == UserRole.admin;
 
   Map<String, dynamic> toMap() {
     return {
@@ -27,7 +43,7 @@ class User {
       'username': username,
       'password': password,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'role': role,
+      'role': role.name,
     };
   }
 
@@ -39,8 +55,9 @@ class User {
       username: map['username'],
       password: map['password'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
-      role:
-          map['role'] ?? 'user', // Default to 'user' for backward compatibility
+      role: map['role'] != null
+          ? UserRoleExtension.fromString(map['role'])
+          : UserRole.user,
     );
   }
 
@@ -51,7 +68,7 @@ class User {
     String? username,
     String? password,
     DateTime? createdAt,
-    String? role,
+    UserRole? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -66,7 +83,7 @@ class User {
 
   @override
   String toString() {
-    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, role: $role, createdAt: $createdAt)';
+    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, role: ${role.name}, createdAt: $createdAt)';
   }
 
   @override

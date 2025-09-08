@@ -657,7 +657,11 @@ class _ClassificationPageWithAuthState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                    Icon(
+                      Icons.camera_alt,
+                      color: _canClassify() ? Colors.white : Colors.grey[300],
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       _canClassify() ? 'Classify New' : 'Model Error',

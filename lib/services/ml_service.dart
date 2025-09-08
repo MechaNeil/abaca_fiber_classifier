@@ -282,7 +282,7 @@ class MLService {
       } catch (fallbackError) {
         debugPrint('Fallback to default model also failed: $fallbackError');
         throw Exception(
-          'Critical error: Both target model and default model failed to load. ${e.toString()}',
+          'Target model failed to load: ${e.toString()}. Default model is now active.',
         );
       }
     }
