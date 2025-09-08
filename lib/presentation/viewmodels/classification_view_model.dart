@@ -102,7 +102,7 @@ class ClassificationViewModel extends ChangeNotifier {
     } catch (e) {
       _setError(_formatModelError(e));
       debugPrint('Model reload error: $e');
-      // Rethrow the exception so AdminViewModel can handle it properly
+      // Rethrow the exception so the caller (e.g., AdminViewModel) can handle it appropriately
       rethrow;
     } finally {
       _setLoading(false);

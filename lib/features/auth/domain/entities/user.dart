@@ -3,13 +3,17 @@ enum UserRole { admin, user }
 extension UserRoleExtension on UserRole {
   String get name => toString().split('.').last;
 
-  static UserRole fromString(String role) {
+  static UserRole fromString(String? role) {
+    if (role == null) {
+      throw ArgumentError('UserRole string cannot be null');
+    }
     switch (role) {
       case 'admin':
         return UserRole.admin;
       case 'user':
-      default:
         return UserRole.user;
+      default:
+        throw ArgumentError('Invalid UserRole string: $role');
     }
   }
 }

@@ -31,7 +31,9 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
     widget.historyViewModel.addListener(_onViewModelChanged);
     // Load today's history when widget is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.historyViewModel.loadTodayHistory();
+      if (mounted) {
+        widget.historyViewModel.loadTodayHistory();
+      }
     });
   }
 
