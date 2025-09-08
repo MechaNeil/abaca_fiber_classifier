@@ -117,6 +117,9 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   }
 
   Widget _buildRecentItem(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
+
     return GestureDetector(
       onTap: () => _showHistoryDetails(history),
       child: Container(
@@ -161,18 +164,22 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Grade badge
+                    // Grade badge or "Cannot be classified" for non-admin low confidence
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _getGradeColor(history.predictedLabel),
+                        color: (isLowConfidence && !isAdmin)
+                            ? Colors.grey[600]
+                            : _getGradeColor(history.predictedLabel),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _getShortGradeName(history.predictedLabel),
+                        (isLowConfidence && !isAdmin)
+                            ? 'Unclassified'
+                            : _getShortGradeName(history.predictedLabel),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -183,24 +190,25 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
                     const SizedBox(height: 2),
 
-                    // Confidence and time
+                    // Confidence and time (only show confidence for admin or high confidence)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Flexible(
-                            child: Text(
-                              history.confidencePercentage,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[700],
+                          if (isAdmin || !isLowConfidence)
+                            Flexible(
+                              child: Text(
+                                history.confidencePercentage,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
                           Flexible(
                             child: Text(
                               history.shortFormattedDate,
@@ -318,6 +326,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
   void _showHistoryDetails(ClassificationHistory history) {
     final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
 
     showDialog(
       context: context,
@@ -346,8 +355,16 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildDetailRow('Grade:', history.gradeLabel),
-              _buildDetailRow('Confidence:', history.confidencePercentage),
+              // Show grade or "Cannot be classified" based on user role and confidence
+              _buildDetailRow(
+                'Grade:',
+                (isLowConfidence && !isAdmin)
+                    ? 'Cannot be classified'
+                    : history.gradeLabel,
+              ),
+              // Only show confidence for admin users or high confidence results
+              if (isAdmin || !isLowConfidence)
+                _buildDetailRow('Confidence:', history.confidencePercentage),
               _buildDetailRow('Date:', history.formattedDate),
               if (isAdmin) ...[_buildDetailRow('Model:', history.model)],
               const SizedBox(height: 16),
