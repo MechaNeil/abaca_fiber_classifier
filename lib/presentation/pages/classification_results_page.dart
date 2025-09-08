@@ -344,9 +344,9 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     const SizedBox(height: 24),
 
-                    // Grade Distribution - Only show for admin users
-                    if (widget.authViewModel?.loggedInUser?.isAdmin ==
-                        true) ...[
+                    // Grade Distribution - Show for admin users or non-admin users with ≥50% confidence
+                    if (widget.authViewModel?.loggedInUser?.isAdmin == true ||
+                        (widget.result!.confidence > 0.5)) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),

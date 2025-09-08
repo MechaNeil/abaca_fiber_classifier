@@ -74,13 +74,13 @@ void main() {
       // Build the widget
       await tester.pumpWidget(widget);
 
-      // Verify the low confidence state loads
-      expect(find.text("We couldn't classify\nthe fiber"), findsOneWidget);
-      expect(find.text('Possible Grade Distribution'), findsOneWidget);
+      // Verify the low confidence state loads for non-admin user
+      expect(find.text("Cannot be classified"), findsOneWidget);
+      // Non-admin users shouldn't see grade distribution for low confidence
+      expect(find.text('Possible Grade Distribution'), findsNothing);
 
-      // Try to expand the grade distribution
-      await tester.tap(find.text('Show all'), warnIfMissed: false);
-      await tester.pumpAndSettle();
+      // Since non-admin users don't see grade distribution for low confidence,
+      // we can't test the expansion. The test should complete without throwing overflow exceptions
 
       // The test should complete without throwing overflow exceptions
       expect(true, true);
