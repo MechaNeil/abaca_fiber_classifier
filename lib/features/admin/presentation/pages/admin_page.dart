@@ -37,6 +37,8 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _onViewModelChanged() {
+    if (!mounted) return;
+
     // Show error or success messages
     if (widget.viewModel.error != null) {
       _showErrorSnackBar(widget.viewModel.error!);
@@ -46,6 +48,8 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Container(
@@ -63,7 +67,9 @@ class _AdminPageState extends State<AdminPage>
           label: 'DISMISS',
           textColor: Colors.white,
           onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            if (mounted) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            }
           },
         ),
       ),
@@ -72,6 +78,8 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -342,6 +350,8 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _confirmSwitchModel(model) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -368,6 +378,8 @@ class _AdminPageState extends State<AdminPage>
   }
 
   void _confirmDeleteModel(model) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
