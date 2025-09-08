@@ -4,6 +4,7 @@ import '../../domain/entities/classification_history.dart';
 import '../viewmodels/history_view_model.dart';
 import '../pages/history_page.dart';
 import '../../core/utils/grade_colors.dart';
+import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 
 /// Widget for displaying recent classification history
 ///
@@ -11,8 +12,13 @@ import '../../core/utils/grade_colors.dart';
 /// on the home page and provides navigation to the full history.
 class RecentHistoryWidget extends StatefulWidget {
   final HistoryViewModel historyViewModel;
+  final AuthViewModel authViewModel;
 
-  const RecentHistoryWidget({super.key, required this.historyViewModel});
+  const RecentHistoryWidget({
+    super.key,
+    required this.historyViewModel,
+    required this.authViewModel,
+  });
 
   @override
   State<RecentHistoryWidget> createState() => _RecentHistoryWidgetState();
@@ -23,9 +29,11 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   void initState() {
     super.initState();
     widget.historyViewModel.addListener(_onViewModelChanged);
-    // Load recent history when widget is initialized
+    // Load today's history when widget is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.historyViewModel.loadRecentHistory(limit: 3);
+      if (mounted) {
+        widget.historyViewModel.loadTodayHistory();
+      }
     });
   }
 
@@ -51,7 +59,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent',
+              'Today',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -74,8 +82,8 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
         const SizedBox(height: 16),
 
-        // Recent items display
-        SizedBox(height: 120, child: _buildRecentContent()),
+        // Today's items display - increased height and made more scrollable
+        SizedBox(height: 140, child: _buildRecentContent()),
       ],
     );
   }
@@ -95,12 +103,13 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
       return _buildEmptyState();
     }
 
-    return _buildRecentList();
+    return _buildTodayList();
   }
 
-  Widget _buildRecentList() {
+  Widget _buildTodayList() {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       itemCount: widget.historyViewModel.recentHistory.length,
       itemBuilder: (context, index) {
         final history = widget.historyViewModel.recentHistory[index];
@@ -110,10 +119,13 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   }
 
   Widget _buildRecentItem(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
+
     return GestureDetector(
       onTap: () => _showHistoryDetails(history),
       child: Container(
-        width: 90,
+        width: 100,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
@@ -154,18 +166,22 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Grade badge
+                    // Grade badge or "Cannot be classified" for non-admin low confidence
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _getGradeColor(history.predictedLabel),
+                        color: (isLowConfidence && !isAdmin)
+                            ? Colors.grey[600]
+                            : _getGradeColor(history.predictedLabel),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _getShortGradeName(history.predictedLabel),
+                        (isLowConfidence && !isAdmin)
+                            ? 'Unclassified'
+                            : _getShortGradeName(history.predictedLabel),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -176,24 +192,25 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
                     const SizedBox(height: 2),
 
-                    // Confidence and time
+                    // Confidence and time (only show confidence for admin or high confidence)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Flexible(
-                            child: Text(
-                              history.confidencePercentage,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[700],
+                          if (isAdmin || !isLowConfidence)
+                            Flexible(
+                              child: Text(
+                                history.confidencePercentage,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
                           Flexible(
                             child: Text(
                               history.shortFormattedDate,
@@ -250,12 +267,12 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
           Icon(Icons.history, size: 32, color: Colors.grey[400]),
           const SizedBox(height: 8),
           Text(
-            'No recent classifications',
+            'No classifications today',
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
           const SizedBox(height: 4),
           Text(
-            'Start classifying to see your history',
+            'Start classifying to see today\'s results',
             style: TextStyle(fontSize: 10, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
@@ -282,8 +299,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
             style: TextStyle(fontSize: 12, color: Colors.red[700]),
           ),
           TextButton(
-            onPressed: () =>
-                widget.historyViewModel.loadRecentHistory(limit: 3),
+            onPressed: () => widget.historyViewModel.loadTodayHistory(),
             child: const Text('Retry', style: TextStyle(fontSize: 10)),
           ),
         ],
@@ -302,12 +318,18 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
   void _navigateToHistoryPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => HistoryPage(viewModel: widget.historyViewModel),
+        builder: (context) => HistoryPage(
+          viewModel: widget.historyViewModel,
+          authViewModel: widget.authViewModel,
+        ),
       ),
     );
   }
 
   void _showHistoryDetails(ClassificationHistory history) {
+    final bool isAdmin = widget.authViewModel.loggedInUser?.isAdmin ?? false;
+    final bool isLowConfidence = history.confidence <= 0.5;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -335,9 +357,18 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildDetailRow('Grade:', history.gradeLabel),
-              _buildDetailRow('Confidence:', history.confidencePercentage),
+              // Show grade or "Cannot be classified" based on user role and confidence
+              _buildDetailRow(
+                'Grade:',
+                (isLowConfidence && !isAdmin)
+                    ? 'Cannot be classified'
+                    : history.gradeLabel,
+              ),
+              // Only show confidence for admin users or high confidence results
+              if (isAdmin || !isLowConfidence)
+                _buildDetailRow('Confidence:', history.confidencePercentage),
               _buildDetailRow('Date:', history.formattedDate),
+              if (isAdmin) ...[_buildDetailRow('Model:', history.model)],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

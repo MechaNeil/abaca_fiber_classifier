@@ -7,4 +7,5 @@ abstract class AuthRepository {
   Future<bool> userExists(String username);
   Future<void> deleteUser(int id);
   Future<List<User>> getAllUsers();
+  Future<void> ensureAdminUserExists();
 }

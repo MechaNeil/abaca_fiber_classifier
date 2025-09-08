@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import '../core/constants/app_constants.dart';
@@ -7,47 +8,99 @@ import '../core/utils/image_utils.dart';
 import '../core/utils/list_extensions.dart' as list_ext;
 import '../domain/entities/classification_result.dart';
 import '../domain/entities/model_info.dart';
+import 'model_service.dart';
 
 class MLService {
   Interpreter? _interpreter;
 
   Future<ModelInfo> loadModel() async {
-    _interpreter = await Interpreter.fromAsset(AppConstants.modelPath);
-    _interpreter!.allocateTensors();
+    try {
+      // Get the current model path from admin settings
+      final modelPath = await ModelService.getCurrentModelPath();
+      debugPrint('Loading model from path: $modelPath');
 
-    final inTensor = _interpreter!.getInputTensor(0);
-    final outTensor = _interpreter!.getOutputTensor(0);
-    final inputShape = inTensor.shape;
-    final outputShape = outTensor.shape;
-    final inputType = inTensor.type.toString();
-    final outputType = outTensor.type.toString();
+      // Load the model based on whether it's an asset or file
+      if (modelPath.startsWith('assets/')) {
+        debugPrint('Loading asset model: $modelPath');
+        _interpreter = await Interpreter.fromAsset(modelPath);
+      } else {
+        // Check if the file exists
+        final modelFile = File(modelPath);
+        if (!await modelFile.exists()) {
+          debugPrint('Model file not found: $modelPath, reverting to default');
+          // Fall back to default model if the file doesn't exist
+          await ModelService.revertToDefault();
+          _interpreter = await Interpreter.fromAsset(AppConstants.modelPath);
+        } else {
+          debugPrint('Loading file model: $modelPath');
+          _interpreter = Interpreter.fromFile(modelFile);
+        }
+      }
 
-    final inputInfo =
-        'shape=${ImageUtils.formatShape(inputShape)} type=$inputType';
-    final outputInfo =
-        'shape=${ImageUtils.formatShape(outputShape)} type=$outputType';
+      _interpreter!.allocateTensors();
 
-    // Validate input tensor
-    if (inputShape.length != 4) {
-      throw StateError(
-        'Expected 4D input tensor [1,H,W,3], got ${ImageUtils.formatShape(inputShape)}',
+      final inTensor = _interpreter!.getInputTensor(0);
+      final outTensor = _interpreter!.getOutputTensor(0);
+      final inputShape = inTensor.shape;
+      final outputShape = outTensor.shape;
+      final inputType = inTensor.type.toString();
+      final outputType = outTensor.type.toString();
+
+      final inputInfo =
+          'shape=${ImageUtils.formatShape(inputShape)} type=$inputType';
+      final outputInfo =
+          'shape=${ImageUtils.formatShape(outputShape)} type=$outputType';
+
+      // Validate input tensor
+      if (inputShape.length != 4) {
+        throw StateError(
+          'Expected 4D input tensor [1,H,W,3], got ${ImageUtils.formatShape(inputShape)}',
+        );
+      }
+      if (inputShape[0] != 1) {
+        throw StateError('Expected batch=1, got batch=${inputShape[0]}');
+      }
+      if (inputShape[3] != 3) {
+        throw StateError(
+          'Expected 3-channel RGB, got channels=${inputShape[3]}',
+        );
+      }
+
+      debugPrint(
+        'Model loaded successfully with input: $inputInfo, output: $outputInfo',
       );
-    }
-    if (inputShape[0] != 1) {
-      throw StateError('Expected batch=1, got batch=${inputShape[0]}');
-    }
-    if (inputShape[3] != 3) {
-      throw StateError('Expected 3-channel RGB, got channels=${inputShape[3]}');
-    }
 
-    return ModelInfo(
-      inputInfo: inputInfo,
-      outputInfo: outputInfo,
-      inputShape: inputShape,
-      outputShape: outputShape,
-      inputType: inputType,
-      outputType: outputType,
-    );
+      return ModelInfo(
+        inputInfo: inputInfo,
+        outputInfo: outputInfo,
+        inputShape: inputShape,
+        outputShape: outputShape,
+        inputType: inputType,
+        outputType: outputType,
+      );
+    } catch (e) {
+      debugPrint('Error loading model: $e');
+
+      // Provide specific error messages for common TensorFlow Lite issues
+      String errorMessage;
+      if (e.toString().contains('FULLY_CONNECTED') ||
+          e.toString().contains('builtin opcode')) {
+        errorMessage =
+            'Model compatibility error: This model uses operators not supported by the current TensorFlow Lite runtime. Please use a model compatible with TensorFlow Lite v2.x';
+      } else if (e.toString().contains('Unable to create interpreter')) {
+        errorMessage =
+            'Failed to create TensorFlow Lite interpreter: The model file may be corrupted or incompatible';
+      } else if (e.toString().contains('Invalid model file')) {
+        errorMessage =
+            'Invalid model file: Please ensure you selected a valid .tflite model file';
+      } else {
+        errorMessage = 'Model loading failed: ${e.toString()}';
+      }
+
+      // Clean up on error
+      dispose();
+      throw Exception(errorMessage);
+    }
   }
 
   Future<ClassificationResult> predict(
@@ -179,6 +232,58 @@ class MLService {
       confidence: confidence,
       probabilities: probs,
     );
+  }
+
+  /// Get the current model name being used
+  Future<String> getCurrentModelName() async {
+    return await ModelService.getCurrentModelName();
+  }
+
+  /// Force reload the model (used when switching models)
+  Future<ModelInfo> reloadModel() async {
+    // Get the target model path first to validate it
+    final targetModelPath = await ModelService.getCurrentModelPath();
+
+    // Validate the target model before disposing current interpreter
+    if (!targetModelPath.startsWith('assets/')) {
+      final modelFile = File(targetModelPath);
+      if (!await modelFile.exists()) {
+        // Revert to default model if the target file doesn't exist
+        await ModelService.revertToDefault();
+        debugPrint(
+          'Target model file not found, reverted to default: $targetModelPath',
+        );
+        throw Exception(
+          'Model file not found: $targetModelPath. Reverted to default model.',
+        );
+      }
+    }
+
+    // Dispose of the current interpreter
+    dispose();
+
+    try {
+      // Load the new model
+      return await loadModel();
+    } catch (e) {
+      debugPrint(
+        'Error during model reload, attempting fallback to default: $e',
+      );
+
+      // If loading fails, try to revert to default and load again
+      try {
+        await ModelService.revertToDefault();
+        // Try loading the default model
+        final defaultModelInfo = await loadModel();
+        // Return the default model info if successful
+        return defaultModelInfo;
+      } catch (fallbackError) {
+        debugPrint('Fallback to default model also failed: $fallbackError');
+        throw Exception(
+          'Target model failed to load: ${e.toString()}. Default model also failed: ${fallbackError.toString()}',
+        );
+      }
+    }
   }
 
   void dispose() {

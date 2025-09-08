@@ -5,6 +5,8 @@ import '../data/repositories/history_repository_impl.dart';
 import '../domain/usecases/initialize_model_usecase.dart';
 import '../domain/usecases/pick_image_usecase.dart';
 import '../domain/usecases/classify_image_usecase.dart';
+import '../domain/usecases/get_current_model_usecase.dart';
+import '../domain/usecases/reload_model_usecase.dart';
 import '../domain/usecases/save_history_usecase.dart';
 import '../domain/usecases/get_history_usecase.dart';
 import '../domain/usecases/delete_history_usecase.dart';
@@ -19,6 +21,11 @@ import '../features/auth/domain/usecases/register_user_usecase.dart';
 import '../features/auth/domain/usecases/login_user_usecase.dart';
 import '../features/auth/presentation/viewmodels/auth_view_model.dart';
 import '../features/auth/presentation/pages/auth_wrapper.dart';
+import '../features/admin/data/admin_repository_impl.dart';
+import '../features/admin/domain/usecases/import_model_usecase.dart';
+import '../features/admin/domain/usecases/manage_models_usecase.dart';
+import '../features/admin/domain/usecases/export_logs_usecase.dart';
+import '../features/admin/presentation/viewmodels/admin_view_model.dart';
 
 class AbacaApp extends StatefulWidget {
   const AbacaApp({super.key});
@@ -34,6 +41,8 @@ class _AbacaAppState extends State<AbacaApp> {
   late final AuthViewModel _authViewModel;
   late final HistoryRepositoryImpl _historyRepository;
   late final HistoryViewModel _historyViewModel;
+  late final AdminRepositoryImpl _adminRepository;
+  late final AdminViewModel _adminViewModel;
 
   @override
   void initState() {
@@ -59,12 +68,16 @@ class _AbacaAppState extends State<AbacaApp> {
       final initializeModelUseCase = InitializeModelUseCase(_repository);
       final pickImageUseCase = PickImageUseCase(_repository);
       final classifyImageUseCase = ClassifyImageUseCase(_repository);
+      final getCurrentModelUseCase = GetCurrentModelUseCase(_repository);
+      final reloadModelUseCase = ReloadModelUseCase(_repository);
 
       // Initialize classification view model
       _viewModel = ClassificationViewModel(
         initializeModelUseCase: initializeModelUseCase,
         pickImageUseCase: pickImageUseCase,
         classifyImageUseCase: classifyImageUseCase,
+        getCurrentModelUseCase: getCurrentModelUseCase,
+        reloadModelUseCase: reloadModelUseCase,
       );
 
       // Initialize auth repository
@@ -78,6 +91,7 @@ class _AbacaAppState extends State<AbacaApp> {
       _authViewModel = AuthViewModel(
         registerUserUseCase: registerUserUseCase,
         loginUserUseCase: loginUserUseCase,
+        authRepository: _authRepository,
       );
 
       // Initialize history repository
@@ -93,6 +107,22 @@ class _AbacaAppState extends State<AbacaApp> {
         getHistoryUseCase: getHistoryUseCase,
         deleteHistoryUseCase: deleteHistoryUseCase,
         saveHistoryUseCase: saveHistoryUseCase,
+      );
+
+      // Initialize admin repository
+      _adminRepository = AdminRepositoryImpl();
+
+      // Initialize admin use cases
+      final importModelUseCase = ImportModelUseCase(_adminRepository);
+      final manageModelsUseCase = ManageModelsUseCase(_adminRepository);
+      final exportLogsUseCase = ExportLogsUseCase(_adminRepository);
+
+      // Initialize admin view model
+      _adminViewModel = AdminViewModel(
+        importModelUseCase: importModelUseCase,
+        manageModelsUseCase: manageModelsUseCase,
+        exportLogsUseCase: exportLogsUseCase,
+        classificationViewModel: _viewModel,
       );
     } catch (e) {
       // Log initialization error but continue with app startup
@@ -119,6 +149,7 @@ class _AbacaAppState extends State<AbacaApp> {
           viewModel: _viewModel,
           authViewModel: authViewModel,
           historyViewModel: _historyViewModel,
+          adminViewModel: _adminViewModel,
         ),
       ),
       debugShowCheckedModeBanner: false,

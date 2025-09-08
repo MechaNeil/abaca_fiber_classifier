@@ -3,6 +3,10 @@ import 'dart:io';
 import '../../domain/entities/classification_result.dart';
 import '../widgets/camera_with_guide_overlay.dart';
 import '../../core/utils/grade_colors.dart';
+import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
+import '../viewmodels/classification_view_model.dart';
+
+const double kConfidenceThreshold = 0.5;
 
 class ClassificationResultsPage extends StatefulWidget {
   final String imagePath;
@@ -11,6 +15,8 @@ class ClassificationResultsPage extends StatefulWidget {
   final bool isError;
   final VoidCallback? onRetakePhoto;
   final VoidCallback? onNewClassification;
+  final AuthViewModel? authViewModel;
+  final ClassificationViewModel? classificationViewModel;
 
   const ClassificationResultsPage({
     super.key,
@@ -20,6 +26,8 @@ class ClassificationResultsPage extends StatefulWidget {
     this.isError = false,
     this.onRetakePhoto,
     this.onNewClassification,
+    this.authViewModel,
+    this.classificationViewModel,
   });
 
   @override
@@ -29,6 +37,33 @@ class ClassificationResultsPage extends StatefulWidget {
 
 class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
   bool _isExpanded = false; // State to track if grade distribution is expanded
+  String? _currentModelName; // Track current model name for admin display
+
+  bool get isAdmin =>
+      widget.authViewModel?.loggedInUser?.isAdmin == true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentModelName();
+  }
+
+  Future<void> _loadCurrentModelName() async {
+    if (isAdmin && widget.classificationViewModel != null) {
+      try {
+        final modelName = await widget.classificationViewModel!
+            .getCurrentModelName();
+        if (mounted) {
+          setState(() {
+            _currentModelName = modelName;
+          });
+        }
+      } catch (e) {
+        // Handle error silently - admin feature shouldn't break the page
+        debugPrint('Error loading model name: $e');
+      }
+    }
+  }
 
   String _formatTimestamp(DateTime dateTime) {
     // You need to add intl package to your pubspec.yaml: intl: ^0.18.0
@@ -150,19 +185,36 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ] else if (widget.result != null &&
-                      widget.result!.confidence <= 0.5) ...[
+                      widget.result!.confidence <= kConfidenceThreshold) ...[
                     // Low Confidence State (≤50%)
                     const Icon(Icons.warning, size: 60, color: Colors.amber),
                     const SizedBox(height: 16),
-                    const Text(
-                      "We couldn't classify\nthe fiber",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+
+                    // Show different messages based on user role
+                    if (isAdmin) ...[
+                      // Admin users see the original message
+                      const Text(
+                        "We couldn't classify\nthe fiber",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      // Non-admin users see "Cannot be classified"
+                      const Text(
+                        "Cannot be classified",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 12),
                     Text(
                       "Please make sure the photo is clear,\nwell-lit, and shows an abaca fiber",
@@ -177,75 +229,78 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Grade Distribution for Low Confidence
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isExpanded = !_isExpanded;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Flexible(
-                                  child: Text(
-                                    'Possible Grade Distribution',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                    // Grade Distribution for Low Confidence - Only show for admin users
+                    if (isAdmin) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Flexible(
+                                    child: Text(
+                                      'Possible Grade Distribution',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isExpanded ? 'Show less' : 'Show all',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isExpanded ? 'Show less' : 'Show all',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    AnimatedRotation(
-                                      turns: _isExpanded ? 0.5 : 0.0,
-                                      duration: const Duration(
-                                        milliseconds: 200,
+                                      const SizedBox(width: 4),
+                                      AnimatedRotation(
+                                        turns: _isExpanded ? 0.5 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Icon(
+                                          Icons.keyboard_arrow_up,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_up,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Grade bars for low confidence
-                          if (widget.result!.probabilities.isNotEmpty) ...[
-                            _buildAllGradeBars(
-                              widget.result!.probabilities,
-                              widget.labels,
-                              _isExpanded,
-                            ),
+                            // Grade bars for low confidence - admin only
+                            if (widget.result!.probabilities.isNotEmpty) ...[
+                              _buildAllGradeBars(
+                                widget.result!.probabilities,
+                                widget.labels,
+                                _isExpanded,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ] else if (widget.result != null) ...[
                     // Success State
                     Container(
@@ -269,6 +324,19 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     const SizedBox(height: 16),
 
+                    // Admin-only: Model Information
+                    if (isAdmin && _currentModelName != null) ...[
+                      Text(
+                        'Model: $_currentModelName',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
                     // Confidence
                     Text(
                       'Confidence: ${(widget.result!.confidence * 100).toInt()}%',
@@ -277,77 +345,81 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
 
                     const SizedBox(height: 24),
 
-                    // Grade Distribution
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isExpanded = !_isExpanded;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Flexible(
-                                  child: Text(
-                                    'Grade Distribution',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                    // Grade Distribution - Show for admin users or non-admin users with ≥50% confidence
+                    if (isAdmin ||
+                        (widget.result!.confidence > kConfidenceThreshold)) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Flexible(
+                                    child: Text(
+                                      'Grade Distribution',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isExpanded ? 'Show less' : 'Show all',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isExpanded ? 'Show less' : 'Show all',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    AnimatedRotation(
-                                      turns: _isExpanded ? 0.5 : 0.0,
-                                      duration: const Duration(
-                                        milliseconds: 200,
+                                      const SizedBox(width: 4),
+                                      AnimatedRotation(
+                                        turns: _isExpanded ? 0.5 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Icon(
+                                          Icons.keyboard_arrow_up,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_up,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Grade bars
-                          if (widget.result!.probabilities.isNotEmpty) ...[
-                            _buildAllGradeBars(
-                              widget.result!.probabilities,
-                              widget.labels,
-                              _isExpanded,
-                            ),
+                            // Grade bars
+                            if (widget.result!.probabilities.isNotEmpty) ...[
+                              _buildAllGradeBars(
+                                widget.result!.probabilities,
+                                widget.labels,
+                                _isExpanded,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Timestamp
                     Text(
@@ -370,7 +442,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     onPressed:
                         (widget.isError ||
                             (widget.result != null &&
-                                widget.result!.confidence <= 0.5))
+                                widget.result!.confidence <= kConfidenceThreshold))
                         ? _showClassificationGuide
                         : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
@@ -383,7 +455,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     child: Text(
                       (widget.isError ||
                               (widget.result != null &&
-                                  widget.result!.confidence <= 0.5))
+                                  widget.result!.confidence <= kConfidenceThreshold))
                           ? 'View Guide'
                           : 'Done',
                       style: const TextStyle(
@@ -400,7 +472,7 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                     onPressed:
                         (widget.isError ||
                             (widget.result != null &&
-                                widget.result!.confidence <= 0.5))
+                                widget.result!.confidence <= kConfidenceThreshold))
                         ? widget.onRetakePhoto
                         : widget.onNewClassification,
                     style: ElevatedButton.styleFrom(
@@ -423,8 +495,8 @@ class _ClassificationResultsPageState extends State<ClassificationResultsPage> {
                         Flexible(
                           child: Text(
                             (widget.isError ||
-                                    (widget.result != null &&
-                                        widget.result!.confidence <= 0.5))
+                            (widget.result != null &&
+                                        widget.result!.confidence <= kConfidenceThreshold))
                                 ? 'Retake Photo'
                                 : 'New',
                             style: const TextStyle(

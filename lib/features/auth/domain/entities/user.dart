@@ -1,3 +1,23 @@
+enum UserRole { admin, user }
+
+extension UserRoleExtension on UserRole {
+  String get name => toString().split('.').last;
+
+  static UserRole fromString(String? role) {
+    if (role == null) {
+      throw ArgumentError('UserRole string cannot be null');
+    }
+    switch (role) {
+      case 'admin':
+        return UserRole.admin;
+      case 'user':
+        return UserRole.user;
+      default:
+        throw ArgumentError('Invalid UserRole string: $role');
+    }
+  }
+}
+
 class User {
   final int? id;
   final String firstName;
@@ -5,6 +25,7 @@ class User {
   final String username;
   final String password;
   final DateTime createdAt;
+  final UserRole role;
 
   const User({
     this.id,
@@ -13,7 +34,10 @@ class User {
     required this.username,
     required this.password,
     required this.createdAt,
+    this.role = UserRole.user,
   });
+
+  bool get isAdmin => role == UserRole.admin;
 
   Map<String, dynamic> toMap() {
     return {
@@ -23,6 +47,7 @@ class User {
       'username': username,
       'password': password,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'role': role.name,
     };
   }
 
@@ -34,6 +59,9 @@ class User {
       username: map['username'],
       password: map['password'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
+      role: map['role'] != null
+          ? UserRoleExtension.fromString(map['role'])
+          : UserRole.user,
     );
   }
 
@@ -44,6 +72,7 @@ class User {
     String? username,
     String? password,
     DateTime? createdAt,
+    UserRole? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -52,12 +81,13 @@ class User {
       username: username ?? this.username,
       password: password ?? this.password,
       createdAt: createdAt ?? this.createdAt,
+      role: role ?? this.role,
     );
   }
 
   @override
   String toString() {
-    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, createdAt: $createdAt)';
+    return 'User(id: $id, firstName: $firstName, lastName: $lastName, username: $username, role: ${role.name}, createdAt: $createdAt)';
   }
 
   @override
@@ -69,7 +99,8 @@ class User {
         other.lastName == lastName &&
         other.username == username &&
         other.password == password &&
-        other.createdAt == createdAt;
+        other.createdAt == createdAt &&
+        other.role == role;
   }
 
   @override
@@ -79,6 +110,7 @@ class User {
         lastName.hashCode ^
         username.hashCode ^
         password.hashCode ^
-        createdAt.hashCode;
+        createdAt.hashCode ^
+        role.hashCode;
   }
 }

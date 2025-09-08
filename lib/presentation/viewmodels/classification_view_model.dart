@@ -4,20 +4,28 @@ import '../../domain/entities/model_info.dart';
 import '../../domain/usecases/initialize_model_usecase.dart';
 import '../../domain/usecases/pick_image_usecase.dart';
 import '../../domain/usecases/classify_image_usecase.dart';
+import '../../domain/usecases/get_current_model_usecase.dart';
+import '../../domain/usecases/reload_model_usecase.dart';
 import '../../core/utils/image_utils.dart';
 
 class ClassificationViewModel extends ChangeNotifier {
   final InitializeModelUseCase _initializeModelUseCase;
   final PickImageUseCase _pickImageUseCase;
   final ClassifyImageUseCase _classifyImageUseCase;
+  final GetCurrentModelUseCase _getCurrentModelUseCase;
+  final ReloadModelUseCase _reloadModelUseCase;
 
   ClassificationViewModel({
     required InitializeModelUseCase initializeModelUseCase,
     required PickImageUseCase pickImageUseCase,
     required ClassifyImageUseCase classifyImageUseCase,
+    required GetCurrentModelUseCase getCurrentModelUseCase,
+    required ReloadModelUseCase reloadModelUseCase,
   }) : _initializeModelUseCase = initializeModelUseCase,
        _pickImageUseCase = pickImageUseCase,
-       _classifyImageUseCase = classifyImageUseCase;
+       _classifyImageUseCase = classifyImageUseCase,
+       _getCurrentModelUseCase = getCurrentModelUseCase,
+       _reloadModelUseCase = reloadModelUseCase;
 
   // State variables
   bool _isLoading = false;
@@ -67,6 +75,35 @@ class ClassificationViewModel extends ChangeNotifier {
     } catch (e) {
       _setError('Failed to initialize model: $e');
       debugPrint('Model initialization error: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> reloadModel() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final (modelInfo, labels) = await _reloadModelUseCase();
+      _modelInfo = modelInfo;
+      _labels = labels;
+      _isModelInitialized = true;
+
+      debugPrint('Model reloaded successfully');
+      debugPrint('Input: ${modelInfo.inputInfo}');
+      debugPrint('Output: ${modelInfo.outputInfo}');
+
+      if (modelInfo.isQuantized) {
+        debugPrint(
+          '[Warning] Detected quantized input tensor (${modelInfo.inputType})',
+        );
+      }
+    } catch (e) {
+      _setError(_formatModelError(e));
+      debugPrint('Model reload error: $e');
+      // Rethrow the exception so the caller (e.g., AdminViewModel) can handle it appropriately
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -163,10 +200,64 @@ class ClassificationViewModel extends ChangeNotifier {
     _error = null;
   }
 
+  /// Clears the current error (public method for UI)
+  void clearError() {
+    _clearError();
+    notifyListeners();
+  }
+
   void _clearResults() {
     _imagePath = null;
     _classificationResult = null;
     _pythonStyleOutput = null;
+  }
+
+  /// Gets the current model name being used
+  Future<String> getCurrentModelName() async {
+    try {
+      return await _getCurrentModelUseCase.execute();
+    } catch (e) {
+      // Return default if error occurs
+      return 'mobilenetv3small_b2.tflite';
+    }
+  }
+
+  /// Format model loading errors for better user experience
+  String _formatModelError(Object error) {
+    final errorString = error.toString();
+
+    // Handle critical errors where both models failed
+    if (errorString.contains(
+      'Both target model and default model failed to load',
+    )) {
+      return 'Unable to load any model files. Please restart the app.';
+    }
+
+    // Handle TensorFlow Lite interpreter creation errors
+    if (errorString.contains('Failed to create TensorFlow Lite interpreter')) {
+      return 'Model file is incompatible or corrupted';
+    }
+
+    // Handle compatibility errors
+    if (errorString.contains('FULLY_CONNECTED') ||
+        errorString.contains('builtin opcode') ||
+        errorString.contains('Didn\'t find op for builtin opcode')) {
+      return 'Model uses unsupported features';
+    }
+
+    // Handle file not found errors
+    if (errorString.contains('Model file not found') ||
+        errorString.contains('No such file or directory')) {
+      return 'Model file not found on device';
+    }
+
+    // Handle generic Unable to create interpreter errors
+    if (errorString.contains('Unable to create interpreter')) {
+      return 'Cannot load model - file may be corrupted';
+    }
+
+    // Default fallback error message
+    return 'Failed to load model';
   }
 
   @override

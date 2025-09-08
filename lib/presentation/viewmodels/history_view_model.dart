@@ -79,6 +79,13 @@ class HistoryViewModel extends ChangeNotifier {
     });
   }
 
+  /// Loads today's history
+  Future<void> loadTodayHistory() async {
+    await _performOperation(() async {
+      _recentHistory = await _getHistoryUseCase.getTodayHistory();
+    });
+  }
+
   /// Loads history statistics
   Future<void> loadStatistics() async {
     await _performOperation(() async {
@@ -92,7 +99,7 @@ class HistoryViewModel extends ChangeNotifier {
       // Load all data in parallel for better performance
       final futures = await Future.wait([
         _getHistoryUseCase.getAllHistory(),
-        _getHistoryUseCase.getRecentHistory(limit: 3),
+        _getHistoryUseCase.getTodayHistory(),
         _getHistoryUseCase.getHistoryStatistics(),
       ]);
 
@@ -109,6 +116,7 @@ class HistoryViewModel extends ChangeNotifier {
     required double confidence,
     required List<double> probabilities,
     int? userId,
+    String model = 'mobilenetv3small_b2.tflite',
   }) async {
     try {
       await _saveHistoryUseCase.execute(
@@ -117,6 +125,7 @@ class HistoryViewModel extends ChangeNotifier {
         confidence: confidence,
         probabilities: probabilities,
         userId: userId,
+        model: model,
       );
 
       // Reload data after saving
