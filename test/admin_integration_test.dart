@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:abaca_fiber_classifier/features/admin/data/admin_repository_impl.dart';
+import 'package:abaca_fiber_classifier/features/admin/data/export_repository_impl.dart';
 import 'package:abaca_fiber_classifier/features/admin/domain/usecases/import_model_usecase.dart';
 import 'package:abaca_fiber_classifier/features/admin/domain/usecases/manage_models_usecase.dart';
 import 'package:abaca_fiber_classifier/features/admin/domain/usecases/export_logs_usecase.dart';
@@ -14,11 +15,12 @@ void main() {
     setUpAll(() async {
       // Initialize repositories
       adminRepository = AdminRepositoryImpl();
+      final exportRepository = ExportRepositoryImpl();
 
       // Initialize use cases
       final importModelUseCase = ImportModelUseCase(adminRepository);
       final manageModelsUseCase = ManageModelsUseCase(adminRepository);
-      final exportLogsUseCase = ExportLogsUseCase(adminRepository);
+      final exportLogsUseCase = ExportLogsUseCase(exportRepository);
 
       // Initialize admin view model
       adminViewModel = AdminViewModel(
