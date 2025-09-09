@@ -164,32 +164,75 @@ class AdminViewModel extends ChangeNotifier {
           await _classificationViewModel.reloadModel();
           debugPrint('Model reloaded in classification system');
 
-          // Only update UI state if model reload was successful
-          _currentModel = model;
-          _successMessage = 'Successfully switched to model: ${model.name}';
+          // Check if the model we tried to load is actually the active one
+          // This helps detect if the fallback mechanism was triggered
+          final actualCurrentModel = await _manageModelsUseCase
+              .getCurrentModel();
+
+          if (actualCurrentModel?.path == model.path) {
+            // Successfully switched to the intended model
+            _currentModel = model;
+            _successMessage = 'Successfully switched to model: ${model.name}';
+          } else {
+            // The system fell back to a different model (likely default)
+            _currentModel = actualCurrentModel;
+            _error =
+                '❌ Model switch failed - reverted to default\n\n'
+                'The model "${model.name}" could not be loaded and the system automatically '
+                'switched back to the default model to maintain functionality.\n\n'
+                '💡 The selected model may be corrupted or incompatible with this device.';
+          }
         } catch (reloadError) {
           debugPrint('Model reload failed: $reloadError');
 
-          // Model reload failed, so we need to revert both the model service and UI state
-          if (previousModelPath != null) {
+          // Check if the error indicates a fallback occurred
+          final errorString = reloadError.toString();
+          if (errorString.contains('Target model failed to load') &&
+              errorString.contains('Default model also failed')) {
+            // Both models failed - critical error
+            _currentModel = previousModel;
+            _error = _formatCriticalError(model.name, reloadError);
+          } else if (errorString.contains('Reverted to default model') ||
+              errorString.contains('attempting fallback to default')) {
+            // Fallback mechanism was triggered, get the current model state
             try {
-              // Revert the model path in ModelService
-              await _manageModelsUseCase.setActiveModel(previousModelPath);
-              // Try to reload the previous model
-              await _classificationViewModel.reloadModel();
-
-              // Keep the UI showing the previous model since that's what's actually active
+              _currentModel = await _manageModelsUseCase.getCurrentModel();
+              _error =
+                  '❌ Model incompatible - switched to default\n\n'
+                  'The model "${model.name}" is not compatible with this device and could not be loaded. '
+                  'The system has automatically switched to the default model.\n\n'
+                  '💡 Please try using a different TensorFlow Lite model file.';
+            } catch (getCurrentError) {
+              // Fallback to previous model if we can't get current state
               _currentModel = previousModel;
-
-              // Provide user-friendly error message
               _error = _formatUserFriendlyError(reloadError, model.name, true);
-            } catch (revertError) {
-              _currentModel = previousModel; // Keep UI consistent
-              _error = _formatCriticalError(model.name, revertError);
             }
           } else {
-            // No previous model to revert to
-            _error = _formatUserFriendlyError(reloadError, model.name, false);
+            // Standard model reload failure, attempt manual revert
+            if (previousModelPath != null) {
+              try {
+                // Revert the model path in ModelService
+                await _manageModelsUseCase.setActiveModel(previousModelPath);
+                // Try to reload the previous model
+                await _classificationViewModel.reloadModel();
+
+                // Keep the UI showing the previous model since that's what's actually active
+                _currentModel = previousModel;
+
+                // Provide user-friendly error message
+                _error = _formatUserFriendlyError(
+                  reloadError,
+                  model.name,
+                  true,
+                );
+              } catch (revertError) {
+                _currentModel = previousModel; // Keep UI consistent
+                _error = _formatCriticalError(model.name, revertError);
+              }
+            } else {
+              // No previous model to revert to
+              _error = _formatUserFriendlyError(reloadError, model.name, false);
+            }
           }
         }
       } else {
@@ -229,11 +272,20 @@ class AdminViewModel extends ChangeNotifier {
           _successMessage = 'Successfully reverted to default model';
         } catch (reloadError) {
           debugPrint('Failed to reload default model: $reloadError');
-          _error = _formatUserFriendlyError(
-            reloadError,
-            'default model',
-            false,
-          );
+
+          // Check if this is a critical error where even default fails
+          if (reloadError.toString().contains('Default model also failed')) {
+            _error =
+                '🚨 Critical Error\n\n'
+                'The default model could not be loaded. This indicates a serious issue with the app installation.\n\n'
+                '💡 Please restart the app or reinstall if the problem persists.';
+          } else {
+            _error = _formatUserFriendlyError(
+              reloadError,
+              'default model',
+              false,
+            );
+          }
         }
       } else {
         _currentModel = await _manageModelsUseCase.getCurrentModel();
@@ -265,7 +317,7 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Export classification logs (placeholder)
+  /// Export classification logs and comprehensive data
   Future<void> exportLogs() async {
     _isExporting = true;
     _error = null;
@@ -273,8 +325,30 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _exportLogsUseCase.execute();
-      _successMessage = 'Logs exported successfully';
+      // Check and request storage permission first
+      final hasPermission = await _exportLogsUseCase.checkStoragePermission();
+      if (!hasPermission) {
+        final permissionGranted = await _exportLogsUseCase
+            .requestStoragePermission();
+        if (!permissionGranted) {
+          _successMessage =
+              'Permission denied. Files will be saved to app storage instead.';
+          notifyListeners();
+          // Continue with export to app storage
+        }
+      }
+
+      final result = await _exportLogsUseCase.exportComplete();
+      final jsonPath = result['json_export'] as String;
+      final csvPaths = result['csv_exports'] as List<String>;
+      final totalRecords = result['total_records'] as int;
+
+      _successMessage =
+          'Export completed successfully!\n'
+          '• Total records: $totalRecords\n'
+          '• JSON file: ${_getFileName(jsonPath)}\n'
+          '• CSV files: ${csvPaths.length}\n'
+          'Files saved to: ${_getLocationDescription(jsonPath)}';
     } catch (e) {
       if (e is UnimplementedError) {
         _error = 'Export feature will be available in a future update';
@@ -285,6 +359,38 @@ class AdminViewModel extends ChangeNotifier {
 
     _isExporting = false;
     notifyListeners();
+  }
+
+  /// Extract filename from full path for user-friendly display
+  String _getFileName(String path) {
+    final parts = path.split('/');
+    return parts.isNotEmpty ? parts.last : path;
+  }
+
+  /// Extract directory name from full path for user-friendly display
+  String _getDirectoryName(String path) {
+    final parts = path.split('/');
+    if (parts.length > 1) {
+      // Return the last two parts of the path for context
+      final directoryParts = parts.sublist(0, parts.length - 1);
+      if (directoryParts.isNotEmpty) {
+        return directoryParts.join('/');
+      }
+    }
+    return path;
+  }
+
+  /// Get user-friendly location description
+  String _getLocationDescription(String path) {
+    if (path.contains('Download') || path.contains('download')) {
+      return 'Downloads folder\n${_getDirectoryName(path)}';
+    } else if (path.contains('documents') || path.contains('Documents')) {
+      return 'App documents folder\n${_getDirectoryName(path)}';
+    } else if (path.contains('AbacaFiberExports')) {
+      return 'External storage\n${_getDirectoryName(path)}';
+    } else {
+      return _getDirectoryName(path);
+    }
   }
 
   /// Clear error message
@@ -367,17 +473,38 @@ class AdminViewModel extends ChangeNotifier {
                 '💡 Try using a different TensorFlow Lite model file.';
     }
 
-    // Handle compatibility errors
+    // Handle compatibility errors (including FULLY_CONNECTED version issues)
     if (errorString.contains('FULLY_CONNECTED') ||
         errorString.contains('builtin opcode') ||
-        errorString.contains('Didn\'t find op for builtin opcode')) {
+        errorString.contains('Didn\'t find op for builtin opcode') ||
+        errorString.contains(
+          'older version of this builtin might be supported',
+        ) ||
+        errorString.contains(
+          'Are you using an old TFLite binary with a newer model',
+        )) {
+      return hasReverted
+          ? '❌ Model version incompatible\n\n'
+                'The model "$modelName" was created with a newer version of TensorFlow Lite and uses features not supported by this app.\n\n'
+                '• The model uses FULLY_CONNECTED version 12\n'
+                '• This app supports older TensorFlow Lite versions\n'
+                '• Model may need to be converted to an older format\n\n'
+                '✅ Automatically switched back to the previous working model.'
+          : '❌ Model version incompatible\n\n'
+                'The model "$modelName" was created with a newer version of TensorFlow Lite and is not supported by this app.\n\n'
+                '💡 Please use a model created with TensorFlow Lite v2.x or earlier.';
+    }
+
+    // Handle general compatibility errors
+    if (errorString.contains('Registration failed') ||
+        errorString.contains('Unable to create interpreter')) {
       return hasReverted
           ? '❌ Model not compatible\n\n'
-                'The model "$modelName" uses advanced features that are not supported by this app version.\n\n'
+                'The model "$modelName" uses features that are not supported by this app version.\n\n'
                 '💡 Please use a standard TensorFlow Lite v2.x model.\n\n'
                 '✅ Automatically switched back to the previous working model.'
           : '❌ Model not compatible\n\n'
-                'The model "$modelName" uses advanced features that are not supported by this app version.\n\n'
+                'The model "$modelName" uses features that are not supported by this app version.\n\n'
                 '💡 Please use a standard TensorFlow Lite v2.x model.';
     }
 
@@ -391,17 +518,6 @@ class AdminViewModel extends ChangeNotifier {
           : '❌ Model file missing\n\n'
                 'The model "$modelName" file could not be found on the device. It may have been moved or deleted.\n\n'
                 '💡 Try importing the model again.';
-    }
-
-    // Handle generic Unable to create interpreter errors
-    if (errorString.contains('Unable to create interpreter')) {
-      return hasReverted
-          ? '❌ Cannot load model\n\n'
-                'The model "$modelName" appears to be corrupted or incompatible with this device.\n\n'
-                '✅ Automatically switched back to the previous working model.'
-          : '❌ Cannot load model\n\n'
-                'The model "$modelName" appears to be corrupted or incompatible with this device.\n\n'
-                '💡 Try using a different model file.';
     }
 
     // Default fallback error message

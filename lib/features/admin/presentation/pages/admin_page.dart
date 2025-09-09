@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../viewmodels/admin_view_model.dart';
 import '../widgets/model_card.dart';
 import '../widgets/admin_button.dart';
+import '../../../auth/data/database_service.dart';
 
 /// Admin tools page for managing models and system operations
 class AdminPage extends StatefulWidget {
@@ -283,7 +284,7 @@ class _AdminPageState extends State<AdminPage>
                           const Icon(Icons.download, color: Colors.green),
                           const SizedBox(width: 8),
                           const Text(
-                            'Export Classification Logs',
+                            'Export Comprehensive Data',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -293,16 +294,57 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Export all classification history and logs to a file. This feature will be implemented in a future update.',
+                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
                       AdminButton(
-                        text: 'Export Logs',
+                        text: 'Export Data',
                         icon: Icons.file_download,
                         onPressed: widget.viewModel.exportLogs,
                         isLoading: widget.viewModel.isExporting,
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.blue,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Database Management Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.storage, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Database Management',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '⚠️ WARNING: This will permanently delete ALL data including users, classification history, and settings. This action cannot be undone!',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AdminButton(
+                        text: 'Reset Database',
+                        icon: Icons.delete_forever,
+                        onPressed: _confirmResetDatabase,
+                        backgroundColor: Colors.red,
                       ),
                     ],
                   ),
@@ -320,7 +362,7 @@ class _AdminPageState extends State<AdminPage>
                           Icon(Icons.info, color: Colors.blue),
                           SizedBox(width: 8),
                           Text(
-                            'Coming Soon',
+                            'Available Export Data',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -330,12 +372,15 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'The export functionality will include:\n'
+                        'The export functionality includes:\n'
                         '• Classification history\n'
                         '• Model performance metrics\n'
                         '• User activity logs\n'
-                        '• Database table queries\n'
-                        '• CSV and JSON export formats',
+                        '• Database tables\n'
+                        '• CSV and JSON export formats\n'
+                        '• System information and metadata\n'
+                        '• Files saved to Downloads folder (with permission)\n'
+                        '• Automatic fallback to app storage',
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -403,5 +448,68 @@ class _AdminPageState extends State<AdminPage>
         ],
       ),
     );
+  }
+
+  void _confirmResetDatabase() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Database'),
+        content: const Text(
+          'Are you sure you want to reset the entire database?\n\n'
+          'This will permanently delete:\n'
+          '• All user accounts\n'
+          '• Classification history\n'
+          '• Model performance data\n'
+          '• Activity logs\n'
+          '• All settings\n\n'
+          'This action cannot be undone!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _resetDatabase();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reset Database'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetDatabase() async {
+    try {
+      await DatabaseService.instance.resetDatabase();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Database reset successfully. Please restart the app.',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to reset database: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 }
