@@ -29,6 +29,6 @@ abstract class AdminRepository {
   /// Get default model path
   String getDefaultModelPath();
 
-  /// Export classification logs (placeholder for future implementation)
-  Future<String> exportClassificationLogs();
+  /// Export classification logs and comprehensive data
+  Future<Map<String, dynamic>> exportComprehensiveData();
 }

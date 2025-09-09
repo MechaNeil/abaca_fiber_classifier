@@ -265,7 +265,7 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Export classification logs (placeholder)
+  /// Export classification logs and comprehensive data
   Future<void> exportLogs() async {
     _isExporting = true;
     _error = null;
@@ -273,8 +273,30 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _exportLogsUseCase.execute();
-      _successMessage = 'Logs exported successfully';
+      // Check and request storage permission first
+      final hasPermission = await _exportLogsUseCase.checkStoragePermission();
+      if (!hasPermission) {
+        final permissionGranted = await _exportLogsUseCase
+            .requestStoragePermission();
+        if (!permissionGranted) {
+          _successMessage =
+              'Permission denied. Files will be saved to app storage instead.';
+          notifyListeners();
+          // Continue with export to app storage
+        }
+      }
+
+      final result = await _exportLogsUseCase.exportComplete();
+      final jsonPath = result['json_export'] as String;
+      final csvPaths = result['csv_exports'] as List<String>;
+      final totalRecords = result['total_records'] as int;
+
+      _successMessage =
+          'Export completed successfully!\n'
+          '• Total records: $totalRecords\n'
+          '• JSON file: ${_getFileName(jsonPath)}\n'
+          '• CSV files: ${csvPaths.length}\n'
+          'Files saved to: ${_getLocationDescription(jsonPath)}';
     } catch (e) {
       if (e is UnimplementedError) {
         _error = 'Export feature will be available in a future update';
@@ -285,6 +307,38 @@ class AdminViewModel extends ChangeNotifier {
 
     _isExporting = false;
     notifyListeners();
+  }
+
+  /// Extract filename from full path for user-friendly display
+  String _getFileName(String path) {
+    final parts = path.split('/');
+    return parts.isNotEmpty ? parts.last : path;
+  }
+
+  /// Extract directory name from full path for user-friendly display
+  String _getDirectoryName(String path) {
+    final parts = path.split('/');
+    if (parts.length > 1) {
+      // Return the last two parts of the path for context
+      final directoryParts = parts.sublist(0, parts.length - 1);
+      if (directoryParts.isNotEmpty) {
+        return directoryParts.join('/');
+      }
+    }
+    return path;
+  }
+
+  /// Get user-friendly location description
+  String _getLocationDescription(String path) {
+    if (path.contains('Download') || path.contains('download')) {
+      return 'Downloads folder\n${_getDirectoryName(path)}';
+    } else if (path.contains('documents') || path.contains('Documents')) {
+      return 'App documents folder\n${_getDirectoryName(path)}';
+    } else if (path.contains('AbacaFiberExports')) {
+      return 'External storage\n${_getDirectoryName(path)}';
+    } else {
+      return _getDirectoryName(path);
+    }
   }
 
   /// Clear error message

@@ -5,6 +5,8 @@ import 'package:sqflite/sqflite.dart';
 import '../domain/repositories/admin_repository.dart';
 import '../domain/entities/model_entity.dart';
 import '../../auth/data/database_service.dart';
+import 'export_repository_impl.dart';
+import '../domain/usecases/export_logs_usecase.dart';
 
 /// Implementation of [AdminRepository]
 class AdminRepositoryImpl implements AdminRepository {
@@ -167,11 +169,16 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
-  Future<String> exportClassificationLogs() async {
-    // Placeholder implementation for future development
-    throw UnimplementedError(
-      'Export classification logs feature will be implemented in a future update',
-    );
+  Future<Map<String, dynamic>> exportComprehensiveData() async {
+    // This will now delegate to the new ExportRepository
+    try {
+      // Create the export repository and use case
+      final exportRepo = ExportRepositoryImpl();
+      final exportUseCase = ExportLogsUseCase(exportRepo);
+      return await exportUseCase.exportComplete();
+    } catch (e) {
+      throw Exception('Failed to export comprehensive data: ${e.toString()}');
+    }
   }
 
   /// Creates the imported_models table if it doesn't exist

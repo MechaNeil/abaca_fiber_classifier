@@ -283,7 +283,7 @@ class _AdminPageState extends State<AdminPage>
                           const Icon(Icons.download, color: Colors.green),
                           const SizedBox(width: 8),
                           const Text(
-                            'Export Classification Logs',
+                            'Export Comprehensive Data',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -293,16 +293,16 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Export all classification history and logs to a file. This feature will be implemented in a future update.',
+                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
                       AdminButton(
-                        text: 'Export Logs',
+                        text: 'Export Data',
                         icon: Icons.file_download,
                         onPressed: widget.viewModel.exportLogs,
                         isLoading: widget.viewModel.isExporting,
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.blue,
                       ),
                     ],
                   ),
@@ -320,7 +320,7 @@ class _AdminPageState extends State<AdminPage>
                           Icon(Icons.info, color: Colors.blue),
                           SizedBox(width: 8),
                           Text(
-                            'Coming Soon',
+                            'Available Export Data',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -330,12 +330,15 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'The export functionality will include:\n'
+                        'The export functionality includes:\n'
                         '• Classification history\n'
                         '• Model performance metrics\n'
                         '• User activity logs\n'
-                        '• Database table queries\n'
-                        '• CSV and JSON export formats',
+                        '• Database tables\n'
+                        '• CSV and JSON export formats\n'
+                        '• System information and metadata\n'
+                        '• Files saved to Downloads folder (with permission)\n'
+                        '• Automatic fallback to app storage',
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],

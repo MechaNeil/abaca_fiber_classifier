@@ -22,6 +22,7 @@ import '../features/auth/domain/usecases/login_user_usecase.dart';
 import '../features/auth/presentation/viewmodels/auth_view_model.dart';
 import '../features/auth/presentation/pages/auth_wrapper.dart';
 import '../features/admin/data/admin_repository_impl.dart';
+import '../features/admin/data/export_repository_impl.dart';
 import '../features/admin/domain/usecases/import_model_usecase.dart';
 import '../features/admin/domain/usecases/manage_models_usecase.dart';
 import '../features/admin/domain/usecases/export_logs_usecase.dart';
@@ -112,10 +113,13 @@ class _AbacaAppState extends State<AbacaApp> {
       // Initialize admin repository
       _adminRepository = AdminRepositoryImpl();
 
+      // Initialize export repository for comprehensive export functionality
+      final exportRepository = ExportRepositoryImpl();
+
       // Initialize admin use cases
       final importModelUseCase = ImportModelUseCase(_adminRepository);
       final manageModelsUseCase = ManageModelsUseCase(_adminRepository);
-      final exportLogsUseCase = ExportLogsUseCase(_adminRepository);
+      final exportLogsUseCase = ExportLogsUseCase(exportRepository);
 
       // Initialize admin view model
       _adminViewModel = AdminViewModel(
