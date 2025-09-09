@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../viewmodels/admin_view_model.dart';
 import '../widgets/model_card.dart';
 import '../widgets/admin_button.dart';
+import '../../../auth/data/database_service.dart';
 
 /// Admin tools page for managing models and system operations
 class AdminPage extends StatefulWidget {
@@ -309,6 +310,47 @@ class _AdminPageState extends State<AdminPage>
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Database Management Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.storage, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Database Management',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '⚠️ WARNING: This will permanently delete ALL data including users, classification history, and settings. This action cannot be undone!',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AdminButton(
+                        text: 'Reset Database',
+                        icon: Icons.delete_forever,
+                        onPressed: _confirmResetDatabase,
+                        backgroundColor: Colors.red,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
@@ -406,5 +448,68 @@ class _AdminPageState extends State<AdminPage>
         ],
       ),
     );
+  }
+
+  void _confirmResetDatabase() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Database'),
+        content: const Text(
+          'Are you sure you want to reset the entire database?\n\n'
+          'This will permanently delete:\n'
+          '• All user accounts\n'
+          '• Classification history\n'
+          '• Model performance data\n'
+          '• Activity logs\n'
+          '• All settings\n\n'
+          'This action cannot be undone!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _resetDatabase();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reset Database'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetDatabase() async {
+    try {
+      await DatabaseService.instance.resetDatabase();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Database reset successfully. Please restart the app.',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to reset database: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 }

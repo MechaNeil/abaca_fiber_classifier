@@ -304,5 +304,27 @@ class DatabaseService {
     }
   }
 
+  /// Resets the database by deleting and recreating it
+  ///
+  /// ⚠️ WARNING: This will delete ALL data in the database!
+  /// This method should only be used for development/testing purposes.
+  ///
+  /// Usage:
+  /// ```dart
+  /// await DatabaseService.instance.resetDatabase();
+  /// ```
+  Future<void> resetDatabase() async {
+    await close();
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'abaca_users.db');
+
+    // Delete the database file
+    await deleteDatabase(path);
+
+    // Reinitialize the database
+    _database = await _initDB('abaca_users.db');
+  }
+
   // The deleteDatabase method has been removed for security reasons.
 }
