@@ -26,6 +26,7 @@ import '../features/admin/data/export_repository_impl.dart';
 import '../features/admin/domain/usecases/import_model_usecase.dart';
 import '../features/admin/domain/usecases/manage_models_usecase.dart';
 import '../features/admin/domain/usecases/export_logs_usecase.dart';
+import '../features/admin/domain/usecases/record_model_performance_usecase.dart';
 import '../features/admin/presentation/viewmodels/admin_view_model.dart';
 
 class AbacaApp extends StatefulWidget {
@@ -120,12 +121,16 @@ class _AbacaAppState extends State<AbacaApp> {
       final importModelUseCase = ImportModelUseCase(_adminRepository);
       final manageModelsUseCase = ManageModelsUseCase(_adminRepository);
       final exportLogsUseCase = ExportLogsUseCase(exportRepository);
+      final recordModelPerformanceUseCase = RecordModelPerformanceUseCase(
+        exportRepository,
+      );
 
       // Initialize admin view model
       _adminViewModel = AdminViewModel(
         importModelUseCase: importModelUseCase,
         manageModelsUseCase: manageModelsUseCase,
         exportLogsUseCase: exportLogsUseCase,
+        recordModelPerformanceUseCase: recordModelPerformanceUseCase,
         classificationViewModel: _viewModel,
       );
     } catch (e) {

@@ -155,9 +155,6 @@ class ExportRepositoryImpl implements ExportRepository {
     try {
       debugPrint('=== DEBUG: Starting export data preparation ===');
 
-      // First, let's ensure we have some test data
-      await _ensureTestData();
-
       final classificationHistory = await getAllClassificationHistory();
       debugPrint(
         'DEBUG: Classification history count: ${classificationHistory.length}',
@@ -177,7 +174,7 @@ class ExportRepositoryImpl implements ExportRepository {
       final systemInfo = await getSystemInfo();
       debugPrint('DEBUG: System info keys: ${systemInfo.keys.toList()}');
 
-      // If we have no real data, let's create some sample data for testing
+      // Create export package with all collected data
       final exportPackage = ExportDataPackage(
         exportTimestamp: DateTime.now(),
         exportedBy: 'Admin User', // Could be passed as parameter
@@ -198,95 +195,6 @@ class ExportRepositoryImpl implements ExportRepository {
     } catch (e) {
       debugPrint('DEBUG: Error preparing export data: $e');
       throw Exception('Failed to prepare export data: ${e.toString()}');
-    }
-  }
-
-  /// Ensure we have some test data for export functionality
-  Future<void> _ensureTestData() async {
-    try {
-      final db = await _databaseService.database;
-
-      // Check if we have any user activity logs
-      final activityCount = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM user_activity_logs',
-      );
-      final activityLogCount = activityCount.first['count'] as int;
-
-      if (activityLogCount == 0) {
-        debugPrint('DEBUG: Creating sample user activity logs');
-        // Create some sample user activity logs
-        await logUserActivity(
-          UserActivityLog(
-            userId: 1,
-            username: 'admin',
-            activityType: ActivityType.login,
-            description: 'Admin user logged in',
-            timestamp: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        );
-
-        await logUserActivity(
-          UserActivityLog(
-            userId: 1,
-            username: 'admin',
-            activityType: ActivityType.classification,
-            description: 'Image classified as Grade A',
-            timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-            metadata: {'grade': 'A', 'confidence': '0.95'},
-          ),
-        );
-
-        await logUserActivity(
-          UserActivityLog(
-            userId: 1,
-            username: 'admin',
-            activityType: ActivityType.modelSwitch,
-            description: 'Switched to model: mobilenetv3small_b2.tflite',
-            timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-            metadata: {'model': 'mobilenetv3small_b2.tflite'},
-          ),
-        );
-      }
-
-      // Check if we have any model performance metrics
-      final metricsCount = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM model_performance_metrics',
-      );
-      final modelMetricsCount = metricsCount.first['count'] as int;
-
-      if (modelMetricsCount == 0) {
-        debugPrint('DEBUG: Creating sample model performance metrics');
-        // Create some sample model performance metrics
-        await recordModelPerformance(
-          ModelPerformanceMetrics(
-            modelName: 'MobileNetV3 Small B2',
-            modelPath: 'assets/mobilenetv3small_b2.tflite',
-            recordedAt: DateTime.now().subtract(const Duration(hours: 1)),
-            totalClassifications: 25,
-            successfulClassifications: 23,
-            averageConfidence: 0.87,
-            highestConfidence: 0.98,
-            lowestConfidence: 0.65,
-            gradeDistribution: {'A': 10, 'B': 8, 'C': 5, 'D': 2},
-            averageConfidencePerGrade: {
-              'A': 0.92,
-              'B': 0.88,
-              'C': 0.75,
-              'D': 0.70,
-            },
-            processingTimeMs: 156.7,
-            deviceInfo: json.encode({
-              'platform': Platform.operatingSystem,
-              'version': Platform.operatingSystemVersion,
-            }),
-          ),
-        );
-      }
-
-      debugPrint('DEBUG: Test data ensured');
-    } catch (e) {
-      debugPrint('DEBUG: Error ensuring test data: $e');
-      // Continue with export even if test data creation fails
     }
   }
 

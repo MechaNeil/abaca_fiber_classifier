@@ -294,7 +294,7 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
+                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Model performance metrics are automatically refreshed before export to ensure up-to-date data. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 16),

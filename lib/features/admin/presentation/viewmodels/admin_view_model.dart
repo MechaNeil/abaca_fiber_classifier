@@ -4,6 +4,7 @@ import '../../domain/entities/model_entity.dart';
 import '../../domain/usecases/import_model_usecase.dart';
 import '../../domain/usecases/manage_models_usecase.dart';
 import '../../domain/usecases/export_logs_usecase.dart';
+import '../../domain/usecases/record_model_performance_usecase.dart';
 import '../../../../presentation/viewmodels/classification_view_model.dart';
 
 /// ViewModel for handling admin operations and state
@@ -11,16 +12,19 @@ class AdminViewModel extends ChangeNotifier {
   final ImportModelUseCase _importModelUseCase;
   final ManageModelsUseCase _manageModelsUseCase;
   final ExportLogsUseCase _exportLogsUseCase;
+  final RecordModelPerformanceUseCase _recordModelPerformanceUseCase;
   final ClassificationViewModel? _classificationViewModel;
 
   AdminViewModel({
     required ImportModelUseCase importModelUseCase,
     required ManageModelsUseCase manageModelsUseCase,
     required ExportLogsUseCase exportLogsUseCase,
+    required RecordModelPerformanceUseCase recordModelPerformanceUseCase,
     ClassificationViewModel? classificationViewModel,
   }) : _importModelUseCase = importModelUseCase,
        _manageModelsUseCase = manageModelsUseCase,
        _exportLogsUseCase = exportLogsUseCase,
+       _recordModelPerformanceUseCase = recordModelPerformanceUseCase,
        _classificationViewModel = classificationViewModel;
 
   // Loading states
@@ -326,6 +330,9 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Record current model performance before export
+      await _recordCurrentModelPerformance();
+
       debugPrint('ADMIN VIEW MODEL: Checking storage permission');
       // Check and request storage permission first
       final hasPermission = await _exportLogsUseCase.checkStoragePermission();
@@ -483,6 +490,34 @@ class AdminViewModel extends ChangeNotifier {
   /// Check if a model is currently active
   bool isCurrentModel(ModelEntity model) {
     return _currentModel?.path == model.path;
+  }
+
+  /// Record current model performance metrics based on classification history
+  Future<void> _recordCurrentModelPerformance() async {
+    try {
+      debugPrint('ADMIN VIEW MODEL: Recording model performance');
+
+      // Get the current model name (filename only, to match classification history)
+      final modelName = _currentModel?.name ?? 'MobileNetV3 Small B2';
+      final modelPath = _currentModel?.path ?? 'mobilenetv3small_b2.tflite';
+
+      // Use just the filename to match how it's stored in classification history
+      final modelFileName = modelPath.split('/').last;
+
+      debugPrint(
+        'ADMIN VIEW MODEL: Using model: $modelName, path: $modelFileName',
+      );
+
+      await _recordModelPerformanceUseCase.recordPerformance(
+        modelName: modelName,
+        modelPath: modelFileName,
+      );
+
+      debugPrint('ADMIN VIEW MODEL: Model performance recorded successfully');
+    } catch (e) {
+      debugPrint('ADMIN VIEW MODEL: Failed to record model performance: $e');
+      // Don't throw error - this shouldn't stop the export process
+    }
   }
 
   /// Format user-friendly error messages for model loading failures
