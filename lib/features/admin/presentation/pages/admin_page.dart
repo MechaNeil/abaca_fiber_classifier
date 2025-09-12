@@ -3,12 +3,20 @@ import '../viewmodels/admin_view_model.dart';
 import '../widgets/model_card.dart';
 import '../widgets/admin_button.dart';
 import '../../../auth/data/database_service.dart';
+import '../../../../presentation/viewmodels/image_storage_view_model.dart';
+import '../../../../presentation/widgets/stored_images_grid_widget.dart';
+import '../../../../presentation/widgets/storage_statistics_widget.dart';
 
 /// Admin tools page for managing models and system operations
 class AdminPage extends StatefulWidget {
   final AdminViewModel viewModel;
+  final ImageStorageViewModel? imageStorageViewModel;
 
-  const AdminPage({super.key, required this.viewModel});
+  const AdminPage({
+    super.key,
+    required this.viewModel,
+    this.imageStorageViewModel,
+  });
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -21,7 +29,7 @@ class _AdminPageState extends State<AdminPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     widget.viewModel.addListener(_onViewModelChanged);
 
     // Initialize the view model
@@ -109,12 +117,17 @@ class _AdminPageState extends State<AdminPage>
           tabs: const [
             Tab(icon: Icon(Icons.cloud_upload), text: 'Model Management'),
             Tab(icon: Icon(Icons.download), text: 'Export Logs'),
+            Tab(icon: Icon(Icons.storage), text: 'Image Storage'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildModelManagementTab(), _buildExportLogsTab()],
+        children: [
+          _buildModelManagementTab(),
+          _buildExportLogsTab(),
+          _buildImageStorageTab(),
+        ],
       ),
     );
   }
@@ -479,6 +492,351 @@ class _AdminPageState extends State<AdminPage>
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reset Database'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageStorageTab() {
+    if (widget.imageStorageViewModel == null) {
+      return const Center(
+        child: Text(
+          'Image storage is not available',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Storage Statistics Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.storage, color: Colors.green[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Storage Statistics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  StorageStatisticsWidget(
+                    statistics: widget.imageStorageViewModel!.storageStatistics,
+                    isLoading: widget.imageStorageViewModel!.isLoading,
+                    onRefresh: () {
+                      widget.imageStorageViewModel!.loadStorageStatistics();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Stored Images Grid Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.photo_library, color: Colors.blue[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Stored Images',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    height: 400, // Fixed height for grid
+                    child: StoredImagesGridWidget(
+                      imagesByGrade:
+                          widget.imageStorageViewModel!.imagesByGrade,
+                      isLoading: widget.imageStorageViewModel!.isLoading,
+                      onRefresh: () {
+                        widget.imageStorageViewModel!.refresh();
+                      },
+                      onExportGrade: (grade) async {
+                        try {
+                          await widget.imageStorageViewModel!.exportGradeAsZip(
+                            grade,
+                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Grade $grade exported successfully',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Export failed: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Export Options Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.file_download, color: Colors.orange[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Export Options',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final filePath = await widget
+                                  .imageStorageViewModel!
+                                  .exportAllImagesAsZip();
+                              if (mounted) {
+                                if (filePath != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Images exported successfully as ZIP to: $filePath',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 5),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Export failed: No file path returned',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Export failed: $e'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: Icon(Icons.archive),
+                          label: Text('Export as ZIP'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final dirPath = await widget
+                                  .imageStorageViewModel!
+                                  .exportToDirectory();
+                              if (mounted) {
+                                if (dirPath != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Images exported to folder successfully: $dirPath',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 5),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Export failed: No directory path returned',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Export failed: $e'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: Icon(Icons.folder),
+                          label: Text('Export to Folder'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  // Verification button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final verification = await widget
+                              .imageStorageViewModel!
+                              .verifyExportCapability();
+                          if (mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text('Export Verification'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Total Stored Images: ${verification['totalStoredImages'] ?? 'Unknown'}',
+                                      ),
+                                      Text(
+                                        'Available Grades: ${verification['availableGrades']?.join(', ') ?? 'None'}',
+                                      ),
+                                      Text(
+                                        'Export Path: ${verification['exportPath'] ?? 'Unknown'}',
+                                      ),
+                                      Text(
+                                        'Export Path Accessible: ${verification['exportPathAccessible'] ?? false}',
+                                      ),
+                                      Text(
+                                        'Archive Support: ${verification['archiveSupport'] ?? false}',
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Ready for Export: ${verification['readyForExport'] ?? false}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              (verification['readyForExport'] ??
+                                                  false)
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                      ),
+                                      if (verification['error'] != null)
+                                        Text(
+                                          'Error: ${verification['error']}',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Verification failed: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: Icon(Icons.verified),
+                      label: Text('Verify Export Capability'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Export functionality:\n'
+                    '• ZIP export: Creates compressed archive with all grade folders\n'
+                    '• Folder export: Copies organized folders to Downloads\n'
+                    '• Includes metadata files for each grade\n'
+                    '• Preserves original folder structure',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
