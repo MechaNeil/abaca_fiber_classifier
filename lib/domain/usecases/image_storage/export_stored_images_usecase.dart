@@ -277,65 +277,6 @@ class ExportStoredImagesUseCase {
     }
   }
 
-  /// Verifies export functionality by checking requirements
-  Future<Map<String, dynamic>> verifyExportCapability() async {
-    try {
-      debugPrint('Verifying export functionality...');
-
-      // Check if we have stored images
-      final imagesByGrade = await _repository.getStoredImagesGroupedByGrade();
-      final totalImages = imagesByGrade.values.fold(
-        0,
-        (sum, images) => sum + images.length,
-      );
-
-      // Check export path accessibility
-      final exportPath = await _storageService.getExportPath();
-      final exportDir = Directory(exportPath);
-      final canWrite =
-          await exportDir.exists() || await _canCreateDirectory(exportPath);
-
-      // Check archive package availability
-      bool archiveSupport = true;
-      try {
-        final testArchive = Archive();
-        ZipEncoder().encode(testArchive); // Test if archive functions work
-      } catch (e) {
-        archiveSupport = false;
-        debugPrint('Archive package test failed: $e');
-      }
-
-      final result = {
-        'totalStoredImages': totalImages,
-        'availableGrades': imagesByGrade.keys.toList(),
-        'exportPathAccessible': canWrite,
-        'exportPath': exportPath,
-        'archiveSupport': archiveSupport,
-        'readyForExport': totalImages > 0 && canWrite && archiveSupport,
-      };
-
-      debugPrint('Export verification result: $result');
-      return result;
-    } catch (e) {
-      debugPrint('Export verification failed: $e');
-      return {'error': e.toString(), 'readyForExport': false};
-    }
-  }
-
-  /// Helper method to check if we can create a directory
-  Future<bool> _canCreateDirectory(String path) async {
-    try {
-      final testDir = Directory(path);
-      if (!await testDir.exists()) {
-        await testDir.create(recursive: true);
-      }
-      return true;
-    } catch (e) {
-      debugPrint('Cannot create directory $path: $e');
-      return false;
-    }
-  }
-
   /// Creates metadata content for export
   Future<String> _createMetadataContent(
     Map<String, List<dynamic>> imagesByGrade,

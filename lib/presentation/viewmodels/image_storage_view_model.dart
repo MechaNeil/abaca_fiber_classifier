@@ -275,16 +275,6 @@ class ImageStorageViewModel extends ChangeNotifier {
     }
   }
 
-  /// Verifies if export functionality is ready
-  Future<Map<String, dynamic>> verifyExportCapability() async {
-    try {
-      return await _exportImagesUseCase.verifyExportCapability();
-    } catch (e) {
-      debugPrint('Error verifying export capability: $e');
-      return {'error': e.toString(), 'readyForExport': false};
-    }
-  }
-
   /// Refreshes all data
   Future<void> refresh() async {
     await loadAllStoredImages();
