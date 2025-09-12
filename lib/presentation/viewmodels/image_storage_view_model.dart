@@ -215,7 +215,8 @@ class ImageStorageViewModel extends ChangeNotifier {
     String grade, {
     String? customFileName,
   }) async {
-    if (_exportingGrades.contains(grade)) return null; // Prevent duplicate operations
+    if (_exportingGrades.contains(grade))
+      return null; // Prevent duplicate operations
 
     _exportingGrades.add(grade);
     _clearMessages();
@@ -301,7 +302,8 @@ class ImageStorageViewModel extends ChangeNotifier {
 
   /// Clears stored images for a specific grade with optimistic UI updates
   Future<int> clearGradeImages(String grade) async {
-    if (_clearingGrades.contains(grade)) return 0; // Prevent duplicate operations
+    if (_clearingGrades.contains(grade))
+      return 0; // Prevent duplicate operations
 
     // Start clearing state for this grade
     _clearingGrades.add(grade);
@@ -310,12 +312,14 @@ class ImageStorageViewModel extends ChangeNotifier {
 
     try {
       debugPrint('ViewModel: Starting clear images for grade $grade');
-      
+
       // Optimistically remove the grade from UI immediately
       _imagesByGrade.remove(grade);
       notifyListeners(); // Update UI immediately
-      
-      final deletedCount = await _clearStoredImagesUseCase.clearGradeImages(grade);
+
+      final deletedCount = await _clearStoredImagesUseCase.clearGradeImages(
+        grade,
+      );
       debugPrint('ViewModel: Cleared $deletedCount images from grade $grade');
 
       // Update storage statistics
@@ -327,12 +331,12 @@ class ImageStorageViewModel extends ChangeNotifier {
       return deletedCount;
     } catch (e) {
       debugPrint('ViewModel: Clear grade $grade images failed: $e');
-      
+
       // Restore the images if operation failed
       if (_imagesByGrade[grade] == null) {
         await _loadImagesForGrade(grade);
       }
-      
+
       _setError('Failed to clear images for grade $grade: ${e.toString()}');
       return 0;
     } finally {

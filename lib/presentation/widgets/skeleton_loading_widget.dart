@@ -30,10 +30,7 @@ class _SkeletonLoadingWidgetState extends State<SkeletonLoadingWidget>
       vsync: this,
     );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.repeat();
   }
@@ -57,11 +54,7 @@ class _SkeletonLoadingWidgetState extends State<SkeletonLoadingWidget>
             gradient: LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [
-                Colors.grey[300]!,
-                Colors.grey[100]!,
-                Colors.grey[300]!,
-              ],
+              colors: [Colors.grey[300]!, Colors.grey[100]!, Colors.grey[300]!],
               stops: [
                 _animation.value - 0.3,
                 _animation.value,
@@ -97,10 +90,7 @@ class GradeSectionSkeleton extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 // Image count skeleton
-                const SkeletonLoadingWidget(
-                  height: 16,
-                  width: 80,
-                ),
+                const SkeletonLoadingWidget(height: 16, width: 80),
                 const Spacer(),
                 // Action buttons skeleton
                 SkeletonLoadingWidget(

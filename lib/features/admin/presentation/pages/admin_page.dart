@@ -580,15 +580,15 @@ class _AdminPageState extends State<AdminPage>
                           imagesByGrade:
                               widget.imageStorageViewModel!.imagesByGrade,
                           isLoading: widget.imageStorageViewModel!.isLoading,
-                          viewModel: widget.imageStorageViewModel, // Pass the viewModel
+                          viewModel: widget
+                              .imageStorageViewModel, // Pass the viewModel
                           onRefresh: () {
                             widget.imageStorageViewModel!.refresh();
                           },
                           onExportGrade: (grade) async {
                             try {
-                              await widget.imageStorageViewModel!.exportGradeAsZip(
-                                grade,
-                              );
+                              await widget.imageStorageViewModel!
+                                  .exportGradeAsZip(grade);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -610,7 +610,8 @@ class _AdminPageState extends State<AdminPage>
                               }
                             }
                           },
-                          onClearGrade: (grade) => _confirmClearGradeImages(grade),
+                          onClearGrade: (grade) =>
+                              _confirmClearGradeImages(grade),
                         );
                       },
                     ),

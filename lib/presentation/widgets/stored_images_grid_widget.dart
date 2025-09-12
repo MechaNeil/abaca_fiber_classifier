@@ -103,7 +103,10 @@ class StoredImagesGridWidget extends StatelessWidget {
             title: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getGradeColor(grade),
                     borderRadius: BorderRadius.circular(16),
@@ -153,7 +156,9 @@ class StoredImagesGridWidget extends StatelessWidget {
                   else
                     IconButton(
                       icon: const Icon(Icons.download),
-                      onPressed: isClearing ? null : () => onExportGrade!(grade),
+                      onPressed: isClearing
+                          ? null
+                          : () => onExportGrade!(grade),
                       tooltip: 'Export grade $grade',
                     ),
                 ],
@@ -173,7 +178,9 @@ class StoredImagesGridWidget extends StatelessWidget {
                   else
                     IconButton(
                       icon: const Icon(Icons.clear, color: Colors.red),
-                      onPressed: isExporting ? null : () => onClearGrade!(grade),
+                      onPressed: isExporting
+                          ? null
+                          : () => onClearGrade!(grade),
                       tooltip: 'Clear grade $grade',
                     ),
                 ],
