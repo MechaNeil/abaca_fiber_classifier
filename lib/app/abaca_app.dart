@@ -26,7 +26,16 @@ import '../features/admin/data/export_repository_impl.dart';
 import '../features/admin/domain/usecases/import_model_usecase.dart';
 import '../features/admin/domain/usecases/manage_models_usecase.dart';
 import '../features/admin/domain/usecases/export_logs_usecase.dart';
+import '../features/admin/domain/usecases/record_model_performance_usecase.dart';
 import '../features/admin/presentation/viewmodels/admin_view_model.dart';
+import '../presentation/viewmodels/image_storage_view_model.dart';
+import '../data/repositories/image_storage_repository_impl.dart';
+import '../domain/usecases/image_storage/store_classified_image_usecase.dart';
+import '../domain/usecases/image_storage/get_stored_images_by_grade_usecase.dart';
+import '../domain/usecases/image_storage/get_storage_statistics_usecase.dart';
+import '../domain/usecases/image_storage/export_stored_images_usecase.dart';
+import '../domain/usecases/image_storage/clear_stored_images_usecase.dart';
+import '../services/image_storage_service.dart';
 
 class AbacaApp extends StatefulWidget {
   const AbacaApp({super.key});
@@ -44,6 +53,7 @@ class _AbacaAppState extends State<AbacaApp> {
   late final HistoryViewModel _historyViewModel;
   late final AdminRepositoryImpl _adminRepository;
   late final AdminViewModel _adminViewModel;
+  late final ImageStorageViewModel _imageStorageViewModel;
 
   @override
   void initState() {
@@ -120,13 +130,50 @@ class _AbacaAppState extends State<AbacaApp> {
       final importModelUseCase = ImportModelUseCase(_adminRepository);
       final manageModelsUseCase = ManageModelsUseCase(_adminRepository);
       final exportLogsUseCase = ExportLogsUseCase(exportRepository);
+      final recordModelPerformanceUseCase = RecordModelPerformanceUseCase(
+        exportRepository,
+      );
 
       // Initialize admin view model
       _adminViewModel = AdminViewModel(
         importModelUseCase: importModelUseCase,
         manageModelsUseCase: manageModelsUseCase,
         exportLogsUseCase: exportLogsUseCase,
+        recordModelPerformanceUseCase: recordModelPerformanceUseCase,
         classificationViewModel: _viewModel,
+      );
+
+      // Initialize image storage components
+      final imageStorageService = ImageStorageService();
+      final imageStorageRepository = ImageStorageRepositoryImpl();
+
+      // Initialize image storage use cases
+      final storeClassifiedImageUseCase = StoreClassifiedImageUseCase(
+        imageStorageRepository,
+        imageStorageService,
+      );
+      final getStoredImagesByGradeUseCase = GetStoredImagesByGradeUseCase(
+        imageStorageRepository,
+      );
+      final getStorageStatisticsUseCase = GetStorageStatisticsUseCase(
+        imageStorageRepository,
+      );
+      final exportStoredImagesUseCase = ExportStoredImagesUseCase(
+        imageStorageRepository,
+        imageStorageService,
+      );
+      final clearStoredImagesUseCase = ClearStoredImagesUseCase(
+        imageStorageService: imageStorageService,
+        imageStorageRepository: imageStorageRepository,
+      );
+
+      // Initialize image storage view model
+      _imageStorageViewModel = ImageStorageViewModel(
+        storeImageUseCase: storeClassifiedImageUseCase,
+        getImagesByGradeUseCase: getStoredImagesByGradeUseCase,
+        getStatisticsUseCase: getStorageStatisticsUseCase,
+        exportImagesUseCase: exportStoredImagesUseCase,
+        clearStoredImagesUseCase: clearStoredImagesUseCase,
       );
     } catch (e) {
       // Log initialization error but continue with app startup
@@ -154,6 +201,7 @@ class _AbacaAppState extends State<AbacaApp> {
           authViewModel: authViewModel,
           historyViewModel: _historyViewModel,
           adminViewModel: _adminViewModel,
+          imageStorageViewModel: _imageStorageViewModel,
         ),
       ),
       debugShowCheckedModeBanner: false,

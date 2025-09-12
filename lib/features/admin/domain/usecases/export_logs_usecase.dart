@@ -72,4 +72,9 @@ class ExportLogsUseCase {
   Future<bool> requestStoragePermission() async {
     return await _exportRepository.requestStoragePermission();
   }
+
+  /// Get export location description
+  Future<String> getExportLocationDescription() async {
+    return await _exportRepository.getExportLocationDescription();
+  }
 }

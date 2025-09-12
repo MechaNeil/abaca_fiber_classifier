@@ -290,6 +290,45 @@ class DatabaseService {
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_metrics_recorded ON model_performance_metrics(recordedAt DESC)
     ''');
+
+    // Create stored images table for image storage functionality
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stored_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        originalImagePath TEXT NOT NULL,
+        storedImagePath TEXT NOT NULL UNIQUE,
+        grade TEXT NOT NULL,
+        confidence REAL NOT NULL,
+        probabilities TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        userId INTEGER,
+        model TEXT NOT NULL,
+        fileName TEXT NOT NULL,
+        fileSizeBytes INTEGER NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (id)
+      )
+    ''');
+
+    // Create indexes for stored images table
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_grade ON stored_images(grade)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_user ON stored_images(userId)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_timestamp ON stored_images(timestamp DESC)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_confidence ON stored_images(confidence)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_model ON stored_images(model)
+    ''');
   }
 
   /// Closes the database connection

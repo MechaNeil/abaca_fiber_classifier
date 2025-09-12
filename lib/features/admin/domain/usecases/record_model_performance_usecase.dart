@@ -1,6 +1,8 @@
 import '../repositories/export_repository.dart';
 import '../entities/model_performance_metrics.dart';
 import 'dart:io';
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 /// Use case for tracking and recording model performance metrics
 class RecordModelPerformanceUseCase {
@@ -14,10 +16,36 @@ class RecordModelPerformanceUseCase {
     required String modelPath,
     double? averageProcessingTimeMs,
   }) async {
-    final history = await _exportRepository.getAllClassificationHistory();
-    final modelHistory = history.where((h) => h.model == modelPath).toList();
+    debugPrint(
+      'RECORD PERFORMANCE: Starting for model: $modelName, path: $modelPath',
+    );
 
-    if (modelHistory.isEmpty) return;
+    final history = await _exportRepository.getAllClassificationHistory();
+    debugPrint('RECORD PERFORMANCE: Total history records: ${history.length}');
+
+    // Debug: Print some sample history records to see what model paths are stored
+    for (int i = 0; i < math.min(3, history.length); i++) {
+      debugPrint(
+        'RECORD PERFORMANCE: Sample history[$i] model: "${history[i].model}"',
+      );
+    }
+
+    final modelHistory = history.where((h) => h.model == modelPath).toList();
+    debugPrint(
+      'RECORD PERFORMANCE: Matching model history records: ${modelHistory.length}',
+    );
+
+    if (modelHistory.isEmpty) {
+      debugPrint(
+        'RECORD PERFORMANCE: No history found for model path: $modelPath',
+      );
+      debugPrint('RECORD PERFORMANCE: Available model paths in history:');
+      final uniqueModels = history.map((h) => h.model).toSet();
+      for (final model in uniqueModels) {
+        debugPrint('  - "$model"');
+      }
+      return;
+    }
 
     final totalClassifications = modelHistory.length;
     final successfulClassifications = modelHistory
@@ -75,7 +103,17 @@ class RecordModelPerformanceUseCase {
       deviceInfo: deviceInfo,
     );
 
+    debugPrint('RECORD PERFORMANCE: Recording metrics for $modelName:');
+    debugPrint('  - Total classifications: $totalClassifications');
+    debugPrint('  - Successful classifications: $successfulClassifications');
+    debugPrint(
+      '  - Average confidence: ${(averageConfidence * 100).toStringAsFixed(1)}%',
+    );
+
     await _exportRepository.recordModelPerformance(metrics);
+    debugPrint(
+      'RECORD PERFORMANCE: Successfully recorded model performance metrics',
+    );
   }
 
   /// Get all model performance metrics

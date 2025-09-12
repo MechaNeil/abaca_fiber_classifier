@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/classification_view_model.dart';
 import '../viewmodels/history_view_model.dart';
+import '../viewmodels/image_storage_view_model.dart';
 import '../widgets/image_source_selection_modal_with_guide.dart';
 import '../widgets/camera_with_guide_overlay.dart';
 import '../widgets/recent_history_widget.dart';
@@ -19,6 +20,7 @@ class ClassificationPageWithAuth extends StatefulWidget {
   final AuthViewModel authViewModel;
   final HistoryViewModel historyViewModel;
   final AdminViewModel? adminViewModel;
+  final ImageStorageViewModel? imageStorageViewModel;
 
   const ClassificationPageWithAuth({
     super.key,
@@ -26,6 +28,7 @@ class ClassificationPageWithAuth extends StatefulWidget {
     required this.authViewModel,
     required this.historyViewModel,
     this.adminViewModel,
+    this.imageStorageViewModel,
   });
 
   @override
@@ -369,6 +372,45 @@ class _ClassificationPageWithAuthState
             userId: user?.id,
             model: currentModel,
           );
+
+          // Auto-store classified image if enabled and confidence is high enough
+          if (widget.imageStorageViewModel != null) {
+            try {
+              final shouldStore = widget.imageStorageViewModel!.shouldAutoStore(
+                result.confidence,
+              );
+              debugPrint(
+                'Auto-storage check: confidence=${result.confidence}, threshold=${widget.imageStorageViewModel!.confidenceThreshold}, autoEnabled=${widget.imageStorageViewModel!.autoStoreEnabled}, shouldStore=$shouldStore',
+              );
+
+              if (shouldStore) {
+                debugPrint(
+                  'Attempting to auto-store image for grade ${result.predictedLabel}',
+                );
+                final success = await widget.imageStorageViewModel!
+                    .storeClassifiedImage(
+                      originalImagePath: imagePath,
+                      result: result,
+                      userId: user?.id,
+                      model: currentModel,
+                    );
+                debugPrint(
+                  'Image auto-store result: $success for grade ${result.predictedLabel}',
+                );
+              } else {
+                debugPrint(
+                  'Image not auto-stored: confidence ${result.confidence} below threshold ${widget.imageStorageViewModel!.confidenceThreshold}',
+                );
+              }
+            } catch (e) {
+              // Log error but don't prevent navigation
+              debugPrint('Failed to auto-store classified image: $e');
+            }
+          } else {
+            debugPrint(
+              'ImageStorageViewModel is null - auto-storage not available',
+            );
+          }
         } catch (e) {
           // Log error but don't prevent navigation
           debugPrint('Failed to save classification to history: $e');
@@ -466,7 +508,10 @@ class _ClassificationPageWithAuthState
     if (widget.adminViewModel != null) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => AdminPage(viewModel: widget.adminViewModel!),
+          builder: (context) => AdminPage(
+            viewModel: widget.adminViewModel!,
+            imageStorageViewModel: widget.imageStorageViewModel,
+          ),
         ),
       );
     }

@@ -3,12 +3,20 @@ import '../viewmodels/admin_view_model.dart';
 import '../widgets/model_card.dart';
 import '../widgets/admin_button.dart';
 import '../../../auth/data/database_service.dart';
+import '../../../../presentation/viewmodels/image_storage_view_model.dart';
+import '../../../../presentation/widgets/stored_images_grid_widget.dart';
+import '../../../../presentation/widgets/storage_statistics_widget.dart';
 
 /// Admin tools page for managing models and system operations
 class AdminPage extends StatefulWidget {
   final AdminViewModel viewModel;
+  final ImageStorageViewModel? imageStorageViewModel;
 
-  const AdminPage({super.key, required this.viewModel});
+  const AdminPage({
+    super.key,
+    required this.viewModel,
+    this.imageStorageViewModel,
+  });
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -21,7 +29,7 @@ class _AdminPageState extends State<AdminPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     widget.viewModel.addListener(_onViewModelChanged);
 
     // Initialize the view model
@@ -109,12 +117,17 @@ class _AdminPageState extends State<AdminPage>
           tabs: const [
             Tab(icon: Icon(Icons.cloud_upload), text: 'Model Management'),
             Tab(icon: Icon(Icons.download), text: 'Export Logs'),
+            Tab(icon: Icon(Icons.storage), text: 'Image Storage'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildModelManagementTab(), _buildExportLogsTab()],
+        children: [
+          _buildModelManagementTab(),
+          _buildExportLogsTab(),
+          _buildImageStorageTab(),
+        ],
       ),
     );
   }
@@ -294,7 +307,7 @@ class _AdminPageState extends State<AdminPage>
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
+                        'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Model performance metrics are automatically refreshed before export to ensure up-to-date data. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
@@ -394,7 +407,7 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
-  void _confirmSwitchModel(model) {
+  void _confirmSwitchModel(dynamic model) {
     if (!mounted) return;
 
     showDialog(
@@ -422,7 +435,7 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
-  void _confirmDeleteModel(model) {
+  void _confirmDeleteModel(dynamic model) {
     if (!mounted) return;
 
     showDialog(
@@ -485,6 +498,334 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
+  Widget _buildImageStorageTab() {
+    if (widget.imageStorageViewModel == null) {
+      return const Center(
+        child: Text(
+          'Image storage is not available',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Storage Statistics Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.storage, color: Colors.green[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Storage Statistics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  StorageStatisticsWidget(
+                    statistics: widget.imageStorageViewModel!.storageStatistics,
+                    isLoading: widget.imageStorageViewModel!.isLoading,
+                    onRefresh: () {
+                      widget.imageStorageViewModel!.loadStorageStatistics();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Stored Images Grid Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.photo_library, color: Colors.blue[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Stored Images',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    height: 400, // Fixed height for grid
+                    child: AnimatedBuilder(
+                      animation: widget.imageStorageViewModel!,
+                      builder: (context, child) {
+                        return StoredImagesGridWidget(
+                          imagesByGrade:
+                              widget.imageStorageViewModel!.imagesByGrade,
+                          isLoading: widget.imageStorageViewModel!.isLoading,
+                          viewModel: widget
+                              .imageStorageViewModel, // Pass the viewModel
+                          onRefresh: () {
+                            widget.imageStorageViewModel!.refresh();
+                          },
+                          onExportGrade: (grade) async {
+                            try {
+                              await widget.imageStorageViewModel!
+                                  .exportGradeAsZip(grade);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Grade $grade exported successfully',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Export failed: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          onClearGrade: (grade) =>
+                              _confirmClearGradeImages(grade),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Storage Management Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.delete_sweep, color: Colors.red[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Storage Management',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    '⚠️ WARNING: These actions will permanently delete stored images. This cannot be undone!',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _confirmClearAllImages(),
+                          icon: Icon(Icons.clear_all),
+                          label: Text('Clear All Images'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Storage management:\n'
+                    '• Clear all images: Removes all stored images from all grades\n'
+                    '• This will free up storage space\n'
+                    '• Export data before clearing if you need to keep the images',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Export Options Section
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.file_download, color: Colors.orange[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Export Options',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final filePath = await widget
+                                  .imageStorageViewModel!
+                                  .exportAllImagesAsZip();
+                              if (mounted) {
+                                if (filePath != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Images exported successfully as ZIP to: $filePath',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 5),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Export failed: No file path returned',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Export failed: $e'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: Icon(Icons.archive),
+                          label: Text('Export as ZIP'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final dirPath = await widget
+                                  .imageStorageViewModel!
+                                  .exportToDirectory();
+                              if (mounted) {
+                                if (dirPath != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Images exported to folder successfully: $dirPath',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 5),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Export failed: No directory path returned',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Export failed: $e'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: Icon(Icons.folder),
+                          label: Text('Export to Folder'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Export functionality:\n'
+                    '• ZIP export: Creates compressed archive with all grade folders\n'
+                    '• Folder export: Copies organized folders to Downloads\n'
+                    '• Includes metadata files for each grade\n'
+                    '• Preserves original folder structure',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _resetDatabase() async {
     try {
       await DatabaseService.instance.resetDatabase();
@@ -507,6 +848,137 @@ class _AdminPageState extends State<AdminPage>
             content: Text('Failed to reset database: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmClearAllImages() {
+    if (!mounted || widget.imageStorageViewModel == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Images'),
+        content: const Text(
+          'Are you sure you want to clear all stored images?\n\n'
+          'This will permanently delete:\n'
+          '• All images from all grades (EF, G, H, I, JK, M1, S2, S3)\n'
+          '• All organized folders and their contents\n'
+          '• All metadata files\n\n'
+          'This action cannot be undone!\n\n'
+          'Consider exporting your data first if you need to keep the images.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _clearAllImages();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Clear All Images'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmClearGradeImages(String grade) {
+    if (!mounted || widget.imageStorageViewModel == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Clear Grade $grade Images'),
+        content: Text(
+          'Are you sure you want to clear all stored images for grade $grade?\n\n'
+          'This will permanently delete:\n'
+          '• All images in the $grade folder\n'
+          '• The grade folder and its contents\n'
+          '• Metadata files for this grade\n\n'
+          'This action cannot be undone!\n\n'
+          'Consider exporting this grade first if you need to keep the images.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _clearGradeImages(grade);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Clear Grade $grade'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _clearAllImages() async {
+    if (widget.imageStorageViewModel == null) return;
+
+    try {
+      final deletedCount = await widget.imageStorageViewModel!
+          .clearAllStoredImages();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Successfully cleared $deletedCount images from all grades',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clear images: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearGradeImages(String grade) async {
+    if (widget.imageStorageViewModel == null) return;
+
+    try {
+      final deletedCount = await widget.imageStorageViewModel!.clearGradeImages(
+        grade,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Successfully cleared $deletedCount images from grade $grade',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clear grade $grade images: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
           ),
         );
       }

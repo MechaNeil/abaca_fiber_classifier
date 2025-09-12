@@ -4,6 +4,7 @@ import '../../domain/entities/model_entity.dart';
 import '../../domain/usecases/import_model_usecase.dart';
 import '../../domain/usecases/manage_models_usecase.dart';
 import '../../domain/usecases/export_logs_usecase.dart';
+import '../../domain/usecases/record_model_performance_usecase.dart';
 import '../../../../presentation/viewmodels/classification_view_model.dart';
 
 /// ViewModel for handling admin operations and state
@@ -11,16 +12,19 @@ class AdminViewModel extends ChangeNotifier {
   final ImportModelUseCase _importModelUseCase;
   final ManageModelsUseCase _manageModelsUseCase;
   final ExportLogsUseCase _exportLogsUseCase;
+  final RecordModelPerformanceUseCase _recordModelPerformanceUseCase;
   final ClassificationViewModel? _classificationViewModel;
 
   AdminViewModel({
     required ImportModelUseCase importModelUseCase,
     required ManageModelsUseCase manageModelsUseCase,
     required ExportLogsUseCase exportLogsUseCase,
+    required RecordModelPerformanceUseCase recordModelPerformanceUseCase,
     ClassificationViewModel? classificationViewModel,
   }) : _importModelUseCase = importModelUseCase,
        _manageModelsUseCase = manageModelsUseCase,
        _exportLogsUseCase = exportLogsUseCase,
+       _recordModelPerformanceUseCase = recordModelPerformanceUseCase,
        _classificationViewModel = classificationViewModel;
 
   // Loading states
@@ -319,37 +323,75 @@ class AdminViewModel extends ChangeNotifier {
 
   /// Export classification logs and comprehensive data
   Future<void> exportLogs() async {
+    debugPrint('=== ADMIN VIEW MODEL: Starting export logs ===');
     _isExporting = true;
     _error = null;
     _successMessage = null;
     notifyListeners();
 
     try {
+      // Record current model performance before export
+      await _recordCurrentModelPerformance();
+
+      debugPrint('ADMIN VIEW MODEL: Checking storage permission');
       // Check and request storage permission first
       final hasPermission = await _exportLogsUseCase.checkStoragePermission();
+      debugPrint('ADMIN VIEW MODEL: Storage permission result: $hasPermission');
       if (!hasPermission) {
         final permissionGranted = await _exportLogsUseCase
             .requestStoragePermission();
+        debugPrint(
+          'ADMIN VIEW MODEL: Permission request result: $permissionGranted',
+        );
         if (!permissionGranted) {
-          _successMessage =
-              'Permission denied. Files will be saved to app storage instead.';
-          notifyListeners();
-          // Continue with export to app storage
+          // This is normal for Android 11+ using app-specific storage
+          debugPrint('ADMIN VIEW MODEL: Using app-specific storage for export');
         }
       }
 
+      debugPrint('ADMIN VIEW MODEL: Starting export complete');
       final result = await _exportLogsUseCase.exportComplete();
+      debugPrint(
+        'ADMIN VIEW MODEL: Export complete finished, processing results',
+      );
+
       final jsonPath = result['json_export'] as String;
       final csvPaths = result['csv_exports'] as List<String>;
       final totalRecords = result['total_records'] as int;
 
-      _successMessage =
-          'Export completed successfully!\n'
-          '• Total records: $totalRecords\n'
-          '• JSON file: ${_getFileName(jsonPath)}\n'
-          '• CSV files: ${csvPaths.length}\n'
-          'Files saved to: ${_getLocationDescription(jsonPath)}';
+      debugPrint('ADMIN VIEW MODEL: Export results:');
+      debugPrint('  - JSON path: $jsonPath');
+      debugPrint('  - CSV paths: $csvPaths');
+      debugPrint('  - Total records: $totalRecords');
+
+      // Determine if we're using app-specific storage based on path
+      final isAppSpecificStorage =
+          jsonPath.contains('Android/data') ||
+          jsonPath.contains('files') ||
+          !jsonPath.contains('Download');
+
+      debugPrint(
+        'ADMIN VIEW MODEL: App-specific storage: $isAppSpecificStorage',
+      );
+
+      _successMessage = isAppSpecificStorage
+          ? '✅ Export completed successfully!\n'
+                '• Total records: $totalRecords\n'
+                '• JSON file: ${_getFileName(jsonPath)}\n'
+                '• CSV files: ${csvPaths.length}\n\n'
+                '📁 Files saved to app-specific storage\n'
+                'Access via file manager or connect device to computer:\n'
+                'Android/data/com.example.abaca_fiber_classifier/files/AbacaFiberExports/'
+          : '✅ Export completed successfully!\n'
+                '• Total records: $totalRecords\n'
+                '• JSON file: ${_getFileName(jsonPath)}\n'
+                '• CSV files: ${csvPaths.length}\n'
+                'Files saved to: ${_getLocationDescription(jsonPath)}';
+
+      debugPrint('ADMIN VIEW MODEL: Success message set: $_successMessage');
     } catch (e) {
+      debugPrint('ADMIN VIEW MODEL: Export error: $e');
+      debugPrint('ADMIN VIEW MODEL: Error stack trace: ${StackTrace.current}');
       if (e is UnimplementedError) {
         _error = 'Export feature will be available in a future update';
       } else {
@@ -358,6 +400,9 @@ class AdminViewModel extends ChangeNotifier {
     }
 
     _isExporting = false;
+    debugPrint(
+      'ADMIN VIEW MODEL: Export process completed, notifying listeners',
+    );
     notifyListeners();
   }
 
@@ -428,6 +473,15 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  /// Get export location description for user information
+  Future<String> getExportLocationDescription() async {
+    try {
+      return await _exportLogsUseCase.getExportLocationDescription();
+    } catch (e) {
+      return 'Export location information not available';
+    }
+  }
+
   /// Check if a model is the default model
   bool isDefaultModel(ModelEntity model) {
     return model.isDefault;
@@ -436,6 +490,34 @@ class AdminViewModel extends ChangeNotifier {
   /// Check if a model is currently active
   bool isCurrentModel(ModelEntity model) {
     return _currentModel?.path == model.path;
+  }
+
+  /// Record current model performance metrics based on classification history
+  Future<void> _recordCurrentModelPerformance() async {
+    try {
+      debugPrint('ADMIN VIEW MODEL: Recording model performance');
+
+      // Get the current model name (filename only, to match classification history)
+      final modelName = _currentModel?.name ?? 'MobileNetV3 Small B2';
+      final modelPath = _currentModel?.path ?? 'mobilenetv3small_b2.tflite';
+
+      // Use just the filename to match how it's stored in classification history
+      final modelFileName = modelPath.split('/').last;
+
+      debugPrint(
+        'ADMIN VIEW MODEL: Using model: $modelName, path: $modelFileName',
+      );
+
+      await _recordModelPerformanceUseCase.recordPerformance(
+        modelName: modelName,
+        modelPath: modelFileName,
+      );
+
+      debugPrint('ADMIN VIEW MODEL: Model performance recorded successfully');
+    } catch (e) {
+      debugPrint('ADMIN VIEW MODEL: Failed to record model performance: $e');
+      // Don't throw error - this shouldn't stop the export process
+    }
   }
 
   /// Format user-friendly error messages for model loading failures
