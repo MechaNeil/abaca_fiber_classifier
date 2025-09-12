@@ -15,7 +15,7 @@ import '../domain/entities/user.dart';
 /// final dbService = DatabaseService.instance;
 /// await dbService.init(); // Initialize database
 /// ```
-const int kDatabaseVersion = 4;
+const int kDatabaseVersion = 5;
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
@@ -128,6 +128,9 @@ class DatabaseService {
       CREATE INDEX idx_history_label ON classification_history(predictedLabel)
     ''');
 
+    // Create export functionality tables
+    await _createExportTables(db);
+
     // Initialize default admin user
     await _initializeAdminUser(db);
   }
@@ -220,6 +223,112 @@ class DatabaseService {
         ALTER TABLE classification_history ADD COLUMN model TEXT NOT NULL DEFAULT 'mobilenetv3small_b2.tflite'
       ''');
     }
+
+    if (oldVersion < 5) {
+      // Add export functionality tables in version 5
+      await _createExportTables(db);
+    }
+
+    if (oldVersion < 5) {
+      // Add export functionality tables in version 5
+      await _createExportTables(db);
+    }
+  }
+
+  /// Creates export-related tables for activity logging and model performance tracking
+  Future<void> _createExportTables(Database db) async {
+    // Create user activity logs table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS user_activity_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        username TEXT,
+        activityType TEXT NOT NULL,
+        description TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,
+        FOREIGN KEY (userId) REFERENCES users (id)
+      )
+    ''');
+
+    // Create model performance metrics table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS model_performance_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        modelName TEXT NOT NULL,
+        modelPath TEXT NOT NULL,
+        recordedAt INTEGER NOT NULL,
+        totalClassifications INTEGER NOT NULL,
+        successfulClassifications INTEGER NOT NULL,
+        averageConfidence REAL NOT NULL,
+        highestConfidence REAL NOT NULL,
+        lowestConfidence REAL NOT NULL,
+        gradeDistribution TEXT NOT NULL,
+        averageConfidencePerGrade TEXT NOT NULL,
+        processingTimeMs REAL NOT NULL,
+        deviceInfo TEXT NOT NULL
+      )
+    ''');
+
+    // Create indexes for better query performance
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON user_activity_logs(timestamp DESC)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_activity_user ON user_activity_logs(userId)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_activity_type ON user_activity_logs(activityType)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_metrics_model ON model_performance_metrics(modelPath)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_metrics_recorded ON model_performance_metrics(recordedAt DESC)
+    ''');
+
+    // Create stored images table for image storage functionality
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stored_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        originalImagePath TEXT NOT NULL,
+        storedImagePath TEXT NOT NULL UNIQUE,
+        grade TEXT NOT NULL,
+        confidence REAL NOT NULL,
+        probabilities TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        userId INTEGER,
+        model TEXT NOT NULL,
+        fileName TEXT NOT NULL,
+        fileSizeBytes INTEGER NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (id)
+      )
+    ''');
+
+    // Create indexes for stored images table
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_grade ON stored_images(grade)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_user ON stored_images(userId)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_timestamp ON stored_images(timestamp DESC)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_confidence ON stored_images(confidence)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_stored_images_model ON stored_images(model)
+    ''');
   }
 
   /// Closes the database connection
@@ -232,6 +341,28 @@ class DatabaseService {
       await db.close();
       _database = null;
     }
+  }
+
+  /// Resets the database by deleting and recreating it
+  ///
+  /// ⚠️ WARNING: This will delete ALL data in the database!
+  /// This method should only be used for development/testing purposes.
+  ///
+  /// Usage:
+  /// ```dart
+  /// await DatabaseService.instance.resetDatabase();
+  /// ```
+  Future<void> resetDatabase() async {
+    await close();
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'abaca_users.db');
+
+    // Delete the database file
+    await deleteDatabase(path);
+
+    // Reinitialize the database
+    _database = await _initDB('abaca_users.db');
   }
 
   // The deleteDatabase method has been removed for security reasons.

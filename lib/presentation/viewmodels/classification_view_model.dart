@@ -238,10 +238,22 @@ class ClassificationViewModel extends ChangeNotifier {
       return 'Model file is incompatible or corrupted';
     }
 
-    // Handle compatibility errors
+    // Handle compatibility errors (including FULLY_CONNECTED version issues)
     if (errorString.contains('FULLY_CONNECTED') ||
         errorString.contains('builtin opcode') ||
-        errorString.contains('Didn\'t find op for builtin opcode')) {
+        errorString.contains('Didn\'t find op for builtin opcode') ||
+        errorString.contains(
+          'older version of this builtin might be supported',
+        ) ||
+        errorString.contains(
+          'Are you using an old TFLite binary with a newer model',
+        )) {
+      return 'Model uses unsupported TensorFlow Lite version';
+    }
+
+    // Handle general compatibility errors
+    if (errorString.contains('Registration failed') ||
+        errorString.contains('Unable to create interpreter')) {
       return 'Model uses unsupported features';
     }
 
@@ -249,11 +261,6 @@ class ClassificationViewModel extends ChangeNotifier {
     if (errorString.contains('Model file not found') ||
         errorString.contains('No such file or directory')) {
       return 'Model file not found on device';
-    }
-
-    // Handle generic Unable to create interpreter errors
-    if (errorString.contains('Unable to create interpreter')) {
-      return 'Cannot load model - file may be corrupted';
     }
 
     // Default fallback error message
