@@ -34,6 +34,7 @@ import '../domain/usecases/image_storage/store_classified_image_usecase.dart';
 import '../domain/usecases/image_storage/get_stored_images_by_grade_usecase.dart';
 import '../domain/usecases/image_storage/get_storage_statistics_usecase.dart';
 import '../domain/usecases/image_storage/export_stored_images_usecase.dart';
+import '../domain/usecases/image_storage/clear_stored_images_usecase.dart';
 import '../services/image_storage_service.dart';
 
 class AbacaApp extends StatefulWidget {
@@ -161,6 +162,10 @@ class _AbacaAppState extends State<AbacaApp> {
         imageStorageRepository,
         imageStorageService,
       );
+      final clearStoredImagesUseCase = ClearStoredImagesUseCase(
+        imageStorageService: imageStorageService,
+        imageStorageRepository: imageStorageRepository,
+      );
 
       // Initialize image storage view model
       _imageStorageViewModel = ImageStorageViewModel(
@@ -168,6 +173,7 @@ class _AbacaAppState extends State<AbacaApp> {
         getImagesByGradeUseCase: getStoredImagesByGradeUseCase,
         getStatisticsUseCase: getStorageStatisticsUseCase,
         exportImagesUseCase: exportStoredImagesUseCase,
+        clearStoredImagesUseCase: clearStoredImagesUseCase,
       );
     } catch (e) {
       // Log initialization error but continue with app startup

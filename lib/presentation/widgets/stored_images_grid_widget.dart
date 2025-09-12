@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 
 import '../../domain/entities/stored_image.dart';
+import '../../presentation/viewmodels/image_storage_view_model.dart';
+import 'skeleton_loading_widget.dart';
 
 /// Widget for displaying stored images organized by grade
 class StoredImagesGridWidget extends StatelessWidget {
@@ -9,7 +11,9 @@ class StoredImagesGridWidget extends StatelessWidget {
   final bool isLoading;
   final VoidCallback? onRefresh;
   final Function(String)? onExportGrade;
+  final Function(String)? onClearGrade;
   final Function(StoredImage)? onImageTap;
+  final ImageStorageViewModel? viewModel; // Add viewModel for per-grade states
 
   const StoredImagesGridWidget({
     super.key,
@@ -17,16 +21,18 @@ class StoredImagesGridWidget extends StatelessWidget {
     this.isLoading = false,
     this.onRefresh,
     this.onExportGrade,
+    this.onClearGrade,
     this.onImageTap,
+    this.viewModel,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+    if (isLoading && imagesByGrade.isEmpty) {
+      return const StorageGridSkeleton(); // Use skeleton loading
     }
 
-    if (imagesByGrade.isEmpty) {
+    if (imagesByGrade.isEmpty && !isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -82,46 +88,105 @@ class StoredImagesGridWidget extends StatelessWidget {
     String grade,
     List<StoredImage> images,
   ) {
-    return Card(
+    final isClearing = viewModel?.isGradeClearing(grade) ?? false;
+    final isExporting = viewModel?.isGradeExporting(grade) ?? false;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.all(8.0),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _getGradeColor(grade),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                grade,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 300),
+        opacity: isClearing ? 0.5 : 1.0,
+        child: Card(
+          child: ExpansionTile(
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getGradeColor(grade),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    grade,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Text(
+                  '${images.length} images',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+                if (isClearing) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Clearing...',
+                    style: TextStyle(
+                      color: Colors.red[600],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (onExportGrade != null && images.isNotEmpty) ...[
+                  if (isExporting)
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.download),
+                      onPressed: isClearing ? null : () => onExportGrade!(grade),
+                      tooltip: 'Export grade $grade',
+                    ),
+                ],
+                if (onClearGrade != null && images.isNotEmpty) ...[
+                  if (isClearing)
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                        ),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.red),
+                      onPressed: isExporting ? null : () => onClearGrade!(grade),
+                      tooltip: 'Clear grade $grade',
+                    ),
+                ],
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              '${images.length} images',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            const Spacer(),
-            if (onExportGrade != null && images.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.download),
-                onPressed: () => onExportGrade!(grade),
-                tooltip: 'Export grade $grade',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildImageGrid(context, images),
               ),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: _buildImageGrid(context, images),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../domain/usecases/image_storage/store_classified_image_usecase.dart'
 import '../../domain/usecases/image_storage/get_stored_images_by_grade_usecase.dart';
 import '../../domain/usecases/image_storage/get_storage_statistics_usecase.dart';
 import '../../domain/usecases/image_storage/export_stored_images_usecase.dart';
+import '../../domain/usecases/image_storage/clear_stored_images_usecase.dart';
 
 /// ViewModel for managing image storage functionality
 class ImageStorageViewModel extends ChangeNotifier {
@@ -13,16 +14,19 @@ class ImageStorageViewModel extends ChangeNotifier {
   final GetStoredImagesByGradeUseCase _getImagesByGradeUseCase;
   final GetStorageStatisticsUseCase _getStatisticsUseCase;
   final ExportStoredImagesUseCase _exportImagesUseCase;
+  final ClearStoredImagesUseCase _clearStoredImagesUseCase;
 
   ImageStorageViewModel({
     required StoreClassifiedImageUseCase storeImageUseCase,
     required GetStoredImagesByGradeUseCase getImagesByGradeUseCase,
     required GetStorageStatisticsUseCase getStatisticsUseCase,
     required ExportStoredImagesUseCase exportImagesUseCase,
+    required ClearStoredImagesUseCase clearStoredImagesUseCase,
   }) : _storeImageUseCase = storeImageUseCase,
        _getImagesByGradeUseCase = getImagesByGradeUseCase,
        _getStatisticsUseCase = getStatisticsUseCase,
-       _exportImagesUseCase = exportImagesUseCase;
+       _exportImagesUseCase = exportImagesUseCase,
+       _clearStoredImagesUseCase = clearStoredImagesUseCase;
 
   // State variables
   bool _isLoading = false;
@@ -30,6 +34,11 @@ class ImageStorageViewModel extends ChangeNotifier {
   bool _isExporting = false;
   String? _error;
   String? _successMessage;
+
+  // Per-grade state tracking
+  final Set<String> _clearingGrades = {};
+  final Set<String> _exportingGrades = {};
+  final Set<String> _loadingGrades = {};
 
   // Storage data
   Map<String, List<StoredImage>> _imagesByGrade = {};
@@ -51,6 +60,11 @@ class ImageStorageViewModel extends ChangeNotifier {
   Map<String, dynamic> get exportPreview => _exportPreview;
   double get confidenceThreshold => _confidenceThreshold;
   bool get autoStoreEnabled => _autoStoreEnabled;
+
+  // Per-grade state getters
+  bool isGradeClearing(String grade) => _clearingGrades.contains(grade);
+  bool isGradeExporting(String grade) => _exportingGrades.contains(grade);
+  bool isGradeLoading(String grade) => _loadingGrades.contains(grade);
 
   // Computed getters
   int get totalStoredImages {
@@ -196,15 +210,16 @@ class ImageStorageViewModel extends ChangeNotifier {
     }
   }
 
-  /// Exports a specific grade as ZIP
+  /// Exports a specific grade as ZIP with per-grade loading state
   Future<String?> exportGradeAsZip(
     String grade, {
     String? customFileName,
   }) async {
-    if (_isExporting) return null;
+    if (_exportingGrades.contains(grade)) return null; // Prevent duplicate operations
 
-    _setExporting(true);
+    _exportingGrades.add(grade);
     _clearMessages();
+    notifyListeners(); // Update UI to show exporting state
 
     try {
       final filePath = await _exportImagesUseCase.exportGradeAsZip(
@@ -217,7 +232,8 @@ class ImageStorageViewModel extends ChangeNotifier {
       _setError('Failed to export grade $grade: ${e.toString()}');
       return null;
     } finally {
-      _setExporting(false);
+      _exportingGrades.remove(grade);
+      notifyListeners(); // Final UI update
     }
   }
 
@@ -252,6 +268,77 @@ class ImageStorageViewModel extends ChangeNotifier {
     if (threshold < 0.0 || threshold > 1.0) return;
     _confidenceThreshold = threshold;
     notifyListeners();
+  }
+
+  /// Clears all stored images from all grades
+  Future<int> clearAllStoredImages() async {
+    if (_isLoading) return 0;
+
+    _setLoading(true);
+    _clearMessages();
+
+    try {
+      debugPrint('ViewModel: Starting clear all stored images');
+      final deletedCount = await _clearStoredImagesUseCase.clearAllImages();
+      debugPrint('ViewModel: Cleared $deletedCount images successfully');
+
+      // Refresh data after clearing
+      _imagesByGrade.clear();
+      await _loadStorageStatistics();
+
+      _setSuccessMessage(
+        'Successfully cleared $deletedCount images from all grades',
+      );
+      return deletedCount;
+    } catch (e) {
+      debugPrint('ViewModel: Clear all images failed: $e');
+      _setError('Failed to clear all images: ${e.toString()}');
+      return 0;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Clears stored images for a specific grade with optimistic UI updates
+  Future<int> clearGradeImages(String grade) async {
+    if (_clearingGrades.contains(grade)) return 0; // Prevent duplicate operations
+
+    // Start clearing state for this grade
+    _clearingGrades.add(grade);
+    _clearMessages();
+    notifyListeners(); // Immediately update UI to show clearing state
+
+    try {
+      debugPrint('ViewModel: Starting clear images for grade $grade');
+      
+      // Optimistically remove the grade from UI immediately
+      _imagesByGrade.remove(grade);
+      notifyListeners(); // Update UI immediately
+      
+      final deletedCount = await _clearStoredImagesUseCase.clearGradeImages(grade);
+      debugPrint('ViewModel: Cleared $deletedCount images from grade $grade');
+
+      // Update storage statistics
+      await _loadStorageStatistics();
+
+      _setSuccessMessage(
+        'Successfully cleared $deletedCount images from grade $grade',
+      );
+      return deletedCount;
+    } catch (e) {
+      debugPrint('ViewModel: Clear grade $grade images failed: $e');
+      
+      // Restore the images if operation failed
+      if (_imagesByGrade[grade] == null) {
+        await _loadImagesForGrade(grade);
+      }
+      
+      _setError('Failed to clear images for grade $grade: ${e.toString()}');
+      return 0;
+    } finally {
+      _clearingGrades.remove(grade);
+      notifyListeners(); // Final UI update
+    }
   }
 
   /// Toggles auto-storage feature
