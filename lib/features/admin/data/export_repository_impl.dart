@@ -295,18 +295,27 @@ class ExportRepositoryImpl implements ExportRepository {
     try {
       debugPrint('DEBUG: Starting CSV export for type: $exportType');
 
-      // Request storage permission
+      // Request storage permission (for older Android versions)
       final hasPermission = await _requestStoragePermission();
+      debugPrint('DEBUG: Storage permission result: $hasPermission');
       if (!hasPermission) {
-        debugPrint('DEBUG: Storage permission denied');
-        throw Exception(
-          'Storage permission is required to export files to Downloads folder. Files will be saved to app storage instead.',
-        );
+        debugPrint('DEBUG: Using app-specific storage for CSV export');
+        // Continue with export using app-specific storage - this is not an error
       }
 
-      // Get export directory (Downloads preferred, app storage as fallback)
+      // Get export directory (app-specific storage or Downloads based on Android version)
       final directory = await _getExportDirectory();
       debugPrint('DEBUG: Export directory: ${directory.path}');
+
+      // Verify directory exists
+      final directoryExists = await directory.exists();
+      debugPrint('DEBUG: Directory exists: $directoryExists');
+      if (!directoryExists) {
+        debugPrint('DEBUG: Creating directory: ${directory.path}');
+        await directory.create(recursive: true);
+        final nowExists = await directory.exists();
+        debugPrint('DEBUG: Directory created successfully: $nowExists');
+      }
 
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = '${exportType}_$timestamp.csv';
@@ -340,16 +349,27 @@ class ExportRepositoryImpl implements ExportRepository {
       debugPrint('DEBUG: CSV string length: ${csvString.length} characters');
 
       final file = File(filePath);
+      debugPrint('DEBUG: About to write CSV file: $filePath');
       await file.writeAsString(csvString);
+      debugPrint('DEBUG: CSV file write completed');
 
       // Verify file was created
       final fileExists = await file.exists();
       final fileSize = fileExists ? await file.length() : 0;
       debugPrint('DEBUG: File created: $fileExists, Size: $fileSize bytes');
 
+      if (!fileExists) {
+        throw Exception('File was not created at path: $filePath');
+      }
+
+      if (fileSize == 0) {
+        debugPrint('WARNING: File created but is empty!');
+      }
+
       return filePath;
     } catch (e) {
       debugPrint('DEBUG: CSV export error: $e');
+      debugPrint('DEBUG: Error stack trace: ${StackTrace.current}');
       throw Exception('Failed to export CSV: ${e.toString()}');
     }
   }
@@ -359,18 +379,27 @@ class ExportRepositoryImpl implements ExportRepository {
     try {
       debugPrint('DEBUG: Starting JSON export');
 
-      // Request storage permission
+      // Request storage permission (for older Android versions)
       final hasPermission = await _requestStoragePermission();
+      debugPrint('DEBUG: Storage permission result: $hasPermission');
       if (!hasPermission) {
-        debugPrint('DEBUG: Storage permission denied for JSON export');
-        throw Exception(
-          'Storage permission is required to export files to Downloads folder. Files will be saved to app storage instead.',
-        );
+        debugPrint('DEBUG: Using app-specific storage for JSON export');
+        // Continue with export using app-specific storage - this is not an error
       }
 
-      // Get export directory (Downloads preferred, app storage as fallback)
+      // Get export directory (app-specific storage or Downloads based on Android version)
       final directory = await _getExportDirectory();
       debugPrint('DEBUG: JSON export directory: ${directory.path}');
+
+      // Verify directory exists
+      final directoryExists = await directory.exists();
+      debugPrint('DEBUG: Directory exists: $directoryExists');
+      if (!directoryExists) {
+        debugPrint('DEBUG: Creating directory: ${directory.path}');
+        await directory.create(recursive: true);
+        final nowExists = await directory.exists();
+        debugPrint('DEBUG: Directory created successfully: $nowExists');
+      }
 
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'abaca_export_$timestamp.json';
@@ -383,7 +412,10 @@ class ExportRepositoryImpl implements ExportRepository {
       debugPrint('DEBUG: JSON string length: ${jsonString.length} characters');
 
       final file = File(filePath);
+      debugPrint('DEBUG: About to write JSON file: $filePath');
+      debugPrint('DEBUG: JSON string length: ${jsonString.length} characters');
       await file.writeAsString(jsonString);
+      debugPrint('DEBUG: JSON file write completed');
 
       // Verify file was created
       final fileExists = await file.exists();
@@ -392,9 +424,18 @@ class ExportRepositoryImpl implements ExportRepository {
         'DEBUG: JSON file created: $fileExists, Size: $fileSize bytes',
       );
 
+      if (!fileExists) {
+        throw Exception('JSON file was not created at path: $filePath');
+      }
+
+      if (fileSize == 0) {
+        debugPrint('WARNING: JSON file created but is empty!');
+      }
+
       return filePath;
     } catch (e) {
       debugPrint('DEBUG: JSON export error: $e');
+      debugPrint('DEBUG: Error stack trace: ${StackTrace.current}');
       throw Exception('Failed to export JSON: ${e.toString()}');
     }
   }
@@ -458,7 +499,7 @@ class ExportRepositoryImpl implements ExportRepository {
     }
   }
 
-  /// Request storage permission for file writing to Downloads folder
+  /// Request storage permission for file writing - Updated for Android 13+
   Future<bool> _requestStoragePermission() async {
     if (!Platform.isAndroid) {
       return true; // iOS and other platforms don't need explicit permissions
@@ -467,8 +508,8 @@ class ExportRepositoryImpl implements ExportRepository {
     try {
       // Check Android version and request appropriate permissions
       if (await _isAndroid13OrHigher()) {
-        // Android 13+ (API 33+) - no need for storage permissions for app-specific directories
-        // But we'll try to use external storage if available
+        // Android 13+ (API 33+) - Use app-specific storage, no permissions needed
+        // App-specific external storage doesn't require permissions on Android 10+
         return true;
       } else if (await _isAndroid11OrHigher()) {
         // Android 11-12 (API 30-32) - use scoped storage
@@ -491,7 +532,8 @@ class ExportRepositoryImpl implements ExportRepository {
       }
     } catch (e) {
       debugPrint('Permission request failed: $e');
-      return false;
+      // On Android 13+, we can still use app-specific storage without permissions
+      return await _isAndroid13OrHigher();
     }
   }
 
@@ -500,28 +542,40 @@ class ExportRepositoryImpl implements ExportRepository {
     if (!Platform.isAndroid) return false;
 
     try {
-      // This is a simplified check using OS version string
       final version = Platform.operatingSystemVersion;
-      // Look for API level indicators in the version string
+
+      // Look for API level indicators (most reliable)
+      final apiMatches = RegExp(r'API (\d+)').firstMatch(version);
+      if (apiMatches != null) {
+        final apiLevel = int.tryParse(apiMatches.group(1) ?? '0') ?? 0;
+        return apiLevel >= 30;
+      }
+
+      // Alternative: Check for Android version numbers
+      final androidMatches = RegExp(r'Android (\d+)').firstMatch(version);
+      if (androidMatches != null) {
+        final majorVersion = int.tryParse(androidMatches.group(1) ?? '0') ?? 0;
+        return majorVersion >= 11;
+      }
+
+      // Fallback string checks
       if (version.contains('API 30') ||
           version.contains('API 31') ||
           version.contains('API 32') ||
           version.contains('API 33') ||
           version.contains('API 34') ||
-          version.contains('API 35')) {
-        return true;
-      }
-
-      // Alternative: Check for Android version numbers
-      if (version.contains('Android 11') ||
+          version.contains('API 35') ||
+          version.contains('Android 11') ||
           version.contains('Android 12') ||
           version.contains('Android 13') ||
-          version.contains('Android 14')) {
+          version.contains('Android 14') ||
+          version.contains('Android 15')) {
         return true;
       }
 
       return false;
     } catch (e) {
+      debugPrint('Error detecting Android version: $e');
       return false;
     }
   }
@@ -532,42 +586,93 @@ class ExportRepositoryImpl implements ExportRepository {
 
     try {
       final version = Platform.operatingSystemVersion;
-      // Look for API level indicators
-      if (version.contains('API 33') ||
-          version.contains('API 34') ||
-          version.contains('API 35')) {
-        return true;
+
+      // Look for API level indicators (most reliable)
+      final apiMatches = RegExp(r'API (\d+)').firstMatch(version);
+      if (apiMatches != null) {
+        final apiLevel = int.tryParse(apiMatches.group(1) ?? '0') ?? 0;
+        return apiLevel >= 33;
       }
 
       // Alternative: Check for Android version numbers
-      if (version.contains('Android 13') || version.contains('Android 14')) {
+      final androidMatches = RegExp(r'Android (\d+)').firstMatch(version);
+      if (androidMatches != null) {
+        final majorVersion = int.tryParse(androidMatches.group(1) ?? '0') ?? 0;
+        return majorVersion >= 13;
+      }
+
+      // Fallback string checks
+      if (version.contains('API 33') ||
+          version.contains('API 34') ||
+          version.contains('API 35') ||
+          version.contains('Android 13') ||
+          version.contains('Android 14') ||
+          version.contains('Android 15')) {
         return true;
       }
 
       return false;
     } catch (e) {
+      debugPrint('Error detecting Android version: $e');
       return false;
     }
   }
 
-  /// Get the directory for exporting files with Downloads folder preference
+  /// Get the directory for exporting files with Android 13+ compatibility
   Future<Directory> _getExportDirectory() async {
     try {
       if (Platform.isAndroid) {
-        // Try to get Downloads directory first
-        final downloadsDir = await _getDownloadsDirectory();
-        if (downloadsDir != null) {
-          return downloadsDir;
-        }
-
-        // Fallback to external storage
-        final externalDir = await getExternalStorageDirectory();
-        if (externalDir != null) {
-          final exportDir = Directory('${externalDir.path}/AbacaFiberExports');
-          if (!await exportDir.exists()) {
-            await exportDir.create(recursive: true);
+        if (await _isAndroid13OrHigher()) {
+          // Android 13+ - Use app-specific external storage (no permissions needed)
+          final externalDir = await getExternalStorageDirectory();
+          if (externalDir != null) {
+            final exportDir = Directory(
+              '${externalDir.path}/AbacaFiberExports',
+            );
+            if (!await exportDir.exists()) {
+              await exportDir.create(recursive: true);
+            }
+            debugPrint(
+              'Using app-specific external storage: ${exportDir.path}',
+            );
+            return exportDir;
           }
-          return exportDir;
+        } else if (await _isAndroid11OrHigher()) {
+          // Android 11-12 - Use app-specific external storage (scoped storage)
+          // Don't try Downloads directory on Android 11+ due to scoped storage restrictions
+          final externalDir = await getExternalStorageDirectory();
+          if (externalDir != null) {
+            final exportDir = Directory(
+              '${externalDir.path}/AbacaFiberExports',
+            );
+            if (!await exportDir.exists()) {
+              await exportDir.create(recursive: true);
+            }
+            debugPrint(
+              'Using app-specific external storage (Android 11+): ${exportDir.path}',
+            );
+            return exportDir;
+          }
+        } else {
+          // Android 10 and below - Try Downloads directory if permissions granted
+          final downloadsDir = await _getDownloadsDirectory();
+          if (downloadsDir != null) {
+            debugPrint('Using Downloads directory: ${downloadsDir.path}');
+            return downloadsDir;
+          }
+
+          // Fallback to external storage
+          final externalDir = await getExternalStorageDirectory();
+          if (externalDir != null) {
+            final exportDir = Directory(
+              '${externalDir.path}/AbacaFiberExports',
+            );
+            if (!await exportDir.exists()) {
+              await exportDir.create(recursive: true);
+            }
+            debugPrint('Using external storage: ${exportDir.path}');
+            return exportDir;
+          }
         }
       }
 
@@ -579,8 +684,10 @@ class ExportRepositoryImpl implements ExportRepository {
         await exportDir.create(recursive: true);
       }
 
+      debugPrint('Using app documents directory: ${exportDir.path}');
       return exportDir;
     } catch (e) {
+      debugPrint('Error getting export directory: $e');
       // Ultimate fallback to app documents directory
       final appDocDir = await getApplicationDocumentsDirectory();
       final exportDir = Directory('${appDocDir.path}/exports');
@@ -589,16 +696,26 @@ class ExportRepositoryImpl implements ExportRepository {
         await exportDir.create(recursive: true);
       }
 
+      debugPrint('Using fallback directory: ${exportDir.path}');
       return exportDir;
     }
   }
 
-  /// Attempt to get Downloads directory
+  /// Attempt to get Downloads directory (Android 10 and below only)
+  /// Note: On Android 11+, direct access to Downloads is restricted by scoped storage
   Future<Directory?> _getDownloadsDirectory() async {
     if (!Platform.isAndroid) return null;
 
     try {
-      // Common Downloads folder paths
+      // Only attempt Downloads access on Android 10 and below
+      if (await _isAndroid11OrHigher()) {
+        debugPrint(
+          'Skipping Downloads directory access on Android 11+ due to scoped storage',
+        );
+        return null;
+      }
+
+      // Common Downloads folder paths for Android 10 and below
       final commonPaths = [
         '/storage/emulated/0/Download',
         '/sdcard/Download',
@@ -631,14 +748,20 @@ class ExportRepositoryImpl implements ExportRepository {
 
     try {
       if (await _isAndroid13OrHigher()) {
-        // Android 13+ - permissions work differently
+        // Android 13+ - app-specific storage, no permissions needed
+        return true;
+      } else if (await _isAndroid11OrHigher()) {
+        // Android 11-12 - using app-specific storage, no permission check needed
         return true;
       } else {
+        // Android 10 and below - check traditional storage permission
         final status = await Permission.storage.status;
         return status.isGranted;
       }
     } catch (e) {
-      return false;
+      debugPrint('Error checking storage permission: $e');
+      // On Android 11+, we can use app-specific storage without permissions
+      return await _isAndroid11OrHigher();
     }
   }
 
@@ -712,5 +835,30 @@ class ExportRepositoryImpl implements ExportRepository {
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_metrics_recorded ON model_performance_metrics(recordedAt DESC)
     ''');
+  }
+
+  /// Get a user-friendly description of where files are being exported
+  @override
+  Future<String> getExportLocationDescription() async {
+    try {
+      final directory = await _getExportDirectory();
+      final path = directory.path;
+
+      if (Platform.isAndroid) {
+        if (await _isAndroid13OrHigher()) {
+          return 'Files are saved in app-specific storage:\n$path\n\nYou can access these files through the app or by connecting your device to a computer and navigating to Android/data/com.example.abaca_fiber_classifier/files/AbacaFiberExports/';
+        } else if (await _isAndroid11OrHigher()) {
+          return 'Files are saved in app-specific storage (Android 11+):\n$path\n\nDue to Android 11+ security restrictions, files are saved in app-specific storage. You can access them by connecting your device to a computer and navigating to Android/data/com.example.abaca_fiber_classifier/files/AbacaFiberExports/';
+        } else if (path.contains('Download')) {
+          return 'Files are saved in Downloads folder:\n$path';
+        } else if (path.contains('external')) {
+          return 'Files are saved in external storage:\n$path';
+        }
+      }
+
+      return 'Files are saved in:\n$path';
+    } catch (e) {
+      return 'Files are saved in app storage (exact location varies by device)';
+    }
   }
 }

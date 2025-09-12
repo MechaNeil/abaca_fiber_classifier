@@ -34,4 +34,7 @@ abstract class ExportRepository {
   // Permission and Storage
   Future<bool> checkStoragePermission();
   Future<bool> requestStoragePermission();
+
+  // Export Location Information
+  Future<String> getExportLocationDescription();
 }

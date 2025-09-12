@@ -319,37 +319,72 @@ class AdminViewModel extends ChangeNotifier {
 
   /// Export classification logs and comprehensive data
   Future<void> exportLogs() async {
+    debugPrint('=== ADMIN VIEW MODEL: Starting export logs ===');
     _isExporting = true;
     _error = null;
     _successMessage = null;
     notifyListeners();
 
     try {
+      debugPrint('ADMIN VIEW MODEL: Checking storage permission');
       // Check and request storage permission first
       final hasPermission = await _exportLogsUseCase.checkStoragePermission();
+      debugPrint('ADMIN VIEW MODEL: Storage permission result: $hasPermission');
       if (!hasPermission) {
         final permissionGranted = await _exportLogsUseCase
             .requestStoragePermission();
+        debugPrint(
+          'ADMIN VIEW MODEL: Permission request result: $permissionGranted',
+        );
         if (!permissionGranted) {
-          _successMessage =
-              'Permission denied. Files will be saved to app storage instead.';
-          notifyListeners();
-          // Continue with export to app storage
+          // This is normal for Android 11+ using app-specific storage
+          debugPrint('ADMIN VIEW MODEL: Using app-specific storage for export');
         }
       }
 
+      debugPrint('ADMIN VIEW MODEL: Starting export complete');
       final result = await _exportLogsUseCase.exportComplete();
+      debugPrint(
+        'ADMIN VIEW MODEL: Export complete finished, processing results',
+      );
+
       final jsonPath = result['json_export'] as String;
       final csvPaths = result['csv_exports'] as List<String>;
       final totalRecords = result['total_records'] as int;
 
-      _successMessage =
-          'Export completed successfully!\n'
-          '• Total records: $totalRecords\n'
-          '• JSON file: ${_getFileName(jsonPath)}\n'
-          '• CSV files: ${csvPaths.length}\n'
-          'Files saved to: ${_getLocationDescription(jsonPath)}';
+      debugPrint('ADMIN VIEW MODEL: Export results:');
+      debugPrint('  - JSON path: $jsonPath');
+      debugPrint('  - CSV paths: $csvPaths');
+      debugPrint('  - Total records: $totalRecords');
+
+      // Determine if we're using app-specific storage based on path
+      final isAppSpecificStorage =
+          jsonPath.contains('Android/data') ||
+          jsonPath.contains('files') ||
+          !jsonPath.contains('Download');
+
+      debugPrint(
+        'ADMIN VIEW MODEL: App-specific storage: $isAppSpecificStorage',
+      );
+
+      _successMessage = isAppSpecificStorage
+          ? '✅ Export completed successfully!\n'
+                '• Total records: $totalRecords\n'
+                '• JSON file: ${_getFileName(jsonPath)}\n'
+                '• CSV files: ${csvPaths.length}\n\n'
+                '📁 Files saved to app-specific storage\n'
+                'Access via file manager or connect device to computer:\n'
+                'Android/data/com.example.abaca_fiber_classifier/files/AbacaFiberExports/'
+          : '✅ Export completed successfully!\n'
+                '• Total records: $totalRecords\n'
+                '• JSON file: ${_getFileName(jsonPath)}\n'
+                '• CSV files: ${csvPaths.length}\n'
+                'Files saved to: ${_getLocationDescription(jsonPath)}';
+
+      debugPrint('ADMIN VIEW MODEL: Success message set: $_successMessage');
     } catch (e) {
+      debugPrint('ADMIN VIEW MODEL: Export error: $e');
+      debugPrint('ADMIN VIEW MODEL: Error stack trace: ${StackTrace.current}');
       if (e is UnimplementedError) {
         _error = 'Export feature will be available in a future update';
       } else {
@@ -358,6 +393,9 @@ class AdminViewModel extends ChangeNotifier {
     }
 
     _isExporting = false;
+    debugPrint(
+      'ADMIN VIEW MODEL: Export process completed, notifying listeners',
+    );
     notifyListeners();
   }
 
@@ -425,6 +463,15 @@ class AdminViewModel extends ChangeNotifier {
 
     if (shouldNotify) {
       notifyListeners();
+    }
+  }
+
+  /// Get export location description for user information
+  Future<String> getExportLocationDescription() async {
+    try {
+      return await _exportLogsUseCase.getExportLocationDescription();
+    } catch (e) {
+      return 'Export location information not available';
     }
   }
 

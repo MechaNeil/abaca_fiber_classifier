@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.abaca_fiber_classifier"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34  // Updated to API 34 for Android 14 support
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -24,8 +24,8 @@ android {
         applicationId = "com.example.abaca_fiber_classifier"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21  // Updated minimum SDK for better compatibility
+        targetSdk = 34  // Updated target SDK to API 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
