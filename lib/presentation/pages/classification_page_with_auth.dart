@@ -10,6 +10,8 @@ import 'history_page.dart';
 import '../../features/auth/presentation/viewmodels/auth_view_model.dart';
 import '../../features/admin/presentation/viewmodels/admin_view_model.dart';
 import '../../features/admin/presentation/pages/admin_page.dart';
+import '../../features/theme/presentation/viewmodels/theme_view_model.dart';
+import '../../features/theme/presentation/widgets/animated_theme_toggle.dart';
 
 /// Classification page with authentication support
 ///
@@ -21,6 +23,7 @@ class ClassificationPageWithAuth extends StatefulWidget {
   final HistoryViewModel historyViewModel;
   final AdminViewModel? adminViewModel;
   final ImageStorageViewModel? imageStorageViewModel;
+  final ThemeViewModel themeViewModel;
 
   const ClassificationPageWithAuth({
     super.key,
@@ -29,6 +32,7 @@ class ClassificationPageWithAuth extends StatefulWidget {
     required this.historyViewModel,
     this.adminViewModel,
     this.imageStorageViewModel,
+    required this.themeViewModel,
   });
 
   @override
@@ -165,9 +169,15 @@ class _ClassificationPageWithAuthState
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.blue.shade50
+              : Colors.blue.shade900.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.shade200),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.blue.shade200
+                : Colors.blue.shade700,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -177,14 +187,20 @@ class _ClassificationPageWithAuthState
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).brightness == Brightness.light
+                      ? Colors.blue.shade600
+                      : Colors.blue.shade300,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Text(
               isSwitchingModel ? 'Switching model...' : 'Loading model...',
               style: TextStyle(
-                color: Colors.blue.shade700,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.blue.shade700
+                    : Colors.blue.shade300,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -206,14 +222,26 @@ class _ClassificationPageWithAuthState
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.red.shade50,
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.red.shade50
+                : Colors.red.shade900.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.red.shade200),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.light
+                  ? Colors.red.shade200
+                  : Colors.red.shade700,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.warning, color: Colors.red.shade600, size: 18),
+              Icon(
+                Icons.warning,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.red.shade600
+                    : Colors.red.shade300,
+                size: 18,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -223,7 +251,9 @@ class _ClassificationPageWithAuthState
                     Text(
                       'Model Error Detected',
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.red.shade700
+                            : Colors.red.shade300,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -231,7 +261,9 @@ class _ClassificationPageWithAuthState
                     Text(
                       'Using default model for safety',
                       style: TextStyle(
-                        color: Colors.red.shade600,
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.red.shade600
+                            : Colors.red.shade400,
                         fontSize: 12,
                       ),
                     ),
@@ -249,19 +281,33 @@ class _ClassificationPageWithAuthState
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.green.shade50,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.green.shade50
+              : Colors.green.shade900.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green.shade200),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.green.shade200
+                : Colors.green.shade700,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).brightness == Brightness.light
+                  ? Colors.green.shade600
+                  : Colors.green.shade300,
+              size: 16,
+            ),
             const SizedBox(width: 8),
             Text(
               'Model Ready',
               style: TextStyle(
-                color: Colors.green.shade700,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.green.shade700
+                    : Colors.green.shade300,
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
@@ -523,14 +569,13 @@ class _ClassificationPageWithAuthState
     final canClassify = _canClassify();
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: const Icon(
-          Icons.wb_sunny_outlined,
-          color: Colors.orange,
-          size: 28,
+        leading: AnimatedThemeToggle(
+          themeViewModel: widget.themeViewModel,
+          size: 20,
         ),
         actions: [
           // Admin tools button (only for admin users)
@@ -560,15 +605,15 @@ class _ClassificationPageWithAuthState
                     children: [
                       Text(
                         '${user.firstName} ${user.lastName}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
                       Text(
                         '@${user.username}',
-                        style: const TextStyle(
-                          color: Colors.grey,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           fontSize: 12,
                         ),
                       ),
@@ -616,11 +661,19 @@ class _ClassificationPageWithAuthState
                 margin: const EdgeInsets.only(right: 16),
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? Colors.black87
+                      : Colors.white70,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 18),
+                child: Icon(
+                  Icons.person,
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? Colors.white
+                      : Colors.black87,
+                  size: 18,
+                ),
               ),
             ),
         ],
@@ -640,14 +693,17 @@ class _ClassificationPageWithAuthState
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: Theme.of(context).primaryColor,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.green, width: 2),
+                    border: Border.all(
+                      color: Theme.of(context).primaryColor,
+                      width: 2,
+                    ),
                   ),
                   child: const Icon(Icons.eco, color: Colors.white, size: 30),
                 ),
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -655,7 +711,9 @@ class _ClassificationPageWithAuthState
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.color,
                       ),
                     ),
                     Text(
@@ -663,7 +721,9 @@ class _ClassificationPageWithAuthState
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.color,
                       ),
                     ),
                     Text(
@@ -671,7 +731,7 @@ class _ClassificationPageWithAuthState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -694,7 +754,9 @@ class _ClassificationPageWithAuthState
               child: ElevatedButton(
                 onPressed: canClassify ? _showImageSourceModal : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canClassify ? Colors.green : Colors.grey,
+                  backgroundColor: canClassify
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).disabledColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -731,7 +793,7 @@ class _ClassificationPageWithAuthState
               child: OutlinedButton(
                 onPressed: _showClassificationGuide,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.green[400]!),
+                  side: BorderSide(color: Theme.of(context).primaryColor),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -741,14 +803,14 @@ class _ClassificationPageWithAuthState
                   children: [
                     Icon(
                       Icons.help_outline,
-                      color: Colors.green[700],
+                      color: Theme.of(context).primaryColor,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'View Guide',
                       style: TextStyle(
-                        color: Colors.green[700],
+                        color: Theme.of(context).primaryColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -767,7 +829,7 @@ class _ClassificationPageWithAuthState
               child: OutlinedButton(
                 onPressed: _showViewHistory,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey[400]!),
+                  side: BorderSide(color: Theme.of(context).dividerColor),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -775,12 +837,16 @@ class _ClassificationPageWithAuthState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.history, color: Colors.grey[700], size: 20),
+                    Icon(
+                      Icons.history,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'View History',
                       style: TextStyle(
-                        color: Colors.grey[700],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -804,10 +870,10 @@ class _ClassificationPageWithAuthState
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -815,9 +881,13 @@ class _ClassificationPageWithAuthState
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
+          backgroundColor: Theme.of(
+            context,
+          ).bottomNavigationBarTheme.backgroundColor,
+          selectedItemColor: Theme.of(context).primaryColor,
+          unselectedItemColor: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
           currentIndex: 0, // Home is selected
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

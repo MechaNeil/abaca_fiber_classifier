@@ -38,7 +38,7 @@ class _ImageSourceSelectionModalWithGuideState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error selecting image: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -53,9 +53,11 @@ class _ImageSourceSelectionModalWithGuideState
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Color(0xFF2C2C2C)
+            : Colors.white,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
@@ -69,7 +71,9 @@ class _ImageSourceSelectionModalWithGuideState
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.3)
+                  : Colors.grey[300],
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -77,9 +81,15 @@ class _ImageSourceSelectionModalWithGuideState
           const SizedBox(height: 20),
 
           // Title
-          const Text(
+          Text(
             'Select Image Source',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -113,16 +123,20 @@ class _ImageSourceSelectionModalWithGuideState
                         ),
                         Text(
                           'Check our guide for best results',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[300]
+                                : Colors.grey,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  // TextButton cannot be const because it uses a non-const onPressed
-                  // So we keep it non-const
                   TextButton(
                     onPressed: _showFullGuide,
-                    child: const Text(
+                    child: Text(
                       'View Guide',
                       style: TextStyle(
                         color: Colors.green,
@@ -150,10 +164,14 @@ class _ImageSourceSelectionModalWithGuideState
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[600]!
+                            : Colors.grey[200]!,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.camera_alt, size: 32, color: Colors.green),
                         SizedBox(width: 16),
@@ -166,6 +184,11 @@ class _ImageSourceSelectionModalWithGuideState
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -173,7 +196,11 @@ class _ImageSourceSelectionModalWithGuideState
                                 'Use camera to capture abaca fiber',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey[300]
+                                      : Colors.grey,
                                 ),
                               ),
                             ],
@@ -182,7 +209,9 @@ class _ImageSourceSelectionModalWithGuideState
                         Icon(
                           Icons.arrow_forward_ios,
                           size: 16,
-                          color: Colors.grey,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[300]
+                              : Colors.grey,
                         ),
                       ],
                     ),
@@ -199,10 +228,14 @@ class _ImageSourceSelectionModalWithGuideState
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[600]!
+                            : Colors.grey[200]!,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.photo_library, size: 32, color: Colors.blue),
                         SizedBox(width: 16),
@@ -215,6 +248,11 @@ class _ImageSourceSelectionModalWithGuideState
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -222,7 +260,11 @@ class _ImageSourceSelectionModalWithGuideState
                                 'Choose from existing photos',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey[300]
+                                      : Colors.grey,
                                 ),
                               ),
                             ],
@@ -231,7 +273,9 @@ class _ImageSourceSelectionModalWithGuideState
                         Icon(
                           Icons.arrow_forward_ios,
                           size: 16,
-                          color: Colors.grey,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[300]
+                              : Colors.grey,
                         ),
                       ],
                     ),

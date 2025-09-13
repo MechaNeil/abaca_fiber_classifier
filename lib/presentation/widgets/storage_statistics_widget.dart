@@ -30,11 +30,22 @@ class StorageStatisticsWidget extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Icon(Icons.storage, size: 48, color: Colors.grey[400]),
+              Icon(
+                Icons.storage_outlined,
+                size: 48,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
               const SizedBox(height: 8),
               Text(
                 'No storage data available',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.9),
+                  fontSize: 16,
+                ),
               ),
               if (onRefresh != null) ...[
                 const SizedBox(height: 8),
@@ -58,11 +69,18 @@ class StorageStatisticsWidget extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.storage, color: Colors.blue),
+                Icon(
+                  Icons.storage,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Storage Statistics',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const Spacer(),
                 if (onRefresh != null)
@@ -74,12 +92,12 @@ class StorageStatisticsWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _buildStatisticsTiles(),
+            _buildStatisticsTiles(context),
             const SizedBox(height: 16),
-            _buildGradeDistribution(),
+            _buildGradeDistribution(context),
             if (statistics['recommendations'] != null) ...[
               const SizedBox(height: 16),
-              _buildRecommendations(),
+              _buildRecommendations(context),
             ],
           ],
         ),
@@ -87,7 +105,7 @@ class StorageStatisticsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatisticsTiles() {
+  Widget _buildStatisticsTiles(BuildContext context) {
     final totalCount = statistics['totalCount'] ?? 0;
     final totalSizeFormatted = statistics['totalSizeFormatted'] ?? '0 B';
     final averageFileSizeFormatted =
@@ -101,7 +119,8 @@ class StorageStatisticsWidget extends StatelessWidget {
             'Total Images',
             '$totalCount',
             Icons.photo_library,
-            Colors.blue,
+            Theme.of(context).colorScheme.primary,
+            context,
           ),
         ),
         const SizedBox(width: 8),
@@ -110,7 +129,8 @@ class StorageStatisticsWidget extends StatelessWidget {
             'Total Size',
             totalSizeFormatted,
             Icons.storage,
-            Colors.green,
+            Theme.of(context).colorScheme.secondary,
+            context,
           ),
         ),
         const SizedBox(width: 8),
@@ -119,7 +139,8 @@ class StorageStatisticsWidget extends StatelessWidget {
             'Avg. Size',
             averageFileSizeFormatted,
             Icons.insert_chart,
-            Colors.orange,
+            Theme.of(context).colorScheme.primary,
+            context,
           ),
         ),
         const SizedBox(width: 8),
@@ -128,7 +149,8 @@ class StorageStatisticsWidget extends StatelessWidget {
             'Top Grade',
             mostCommonGrade,
             Icons.star,
-            Colors.purple,
+            Theme.of(context).colorScheme.primary,
+            context,
           ),
         ),
       ],
@@ -140,13 +162,14 @@ class StorageStatisticsWidget extends StatelessWidget {
     String value,
     IconData icon,
     Color color,
+    BuildContext context,
   ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -163,7 +186,12 @@ class StorageStatisticsWidget extends StatelessWidget {
           ),
           Text(
             title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -171,7 +199,7 @@ class StorageStatisticsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildGradeDistribution() {
+  Widget _buildGradeDistribution(BuildContext context) {
     final gradeDistribution =
         statistics['gradeDistribution'] as Map<String, Map<String, dynamic>>?;
 
@@ -182,9 +210,13 @@ class StorageStatisticsWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Grade Distribution',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         ...gradeDistribution.entries.map((entry) {
@@ -201,14 +233,14 @@ class StorageStatisticsWidget extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: _getGradeColor(grade),
+                    color: _getGradeColor(grade, context),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Center(
                     child: Text(
                       grade,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -219,7 +251,12 @@ class StorageStatisticsWidget extends StatelessWidget {
                 Expanded(child: Text('$count images')),
                 Text(
                   sizeFormatted,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -229,7 +266,7 @@ class StorageStatisticsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendations() {
+  Widget _buildRecommendations(BuildContext context) {
     final recommendations = statistics['recommendations'] as List<String>?;
 
     if (recommendations == null || recommendations.isEmpty) {
@@ -239,9 +276,13 @@ class StorageStatisticsWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Recommendations',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         ...recommendations.map((recommendation) {
@@ -253,13 +294,18 @@ class StorageStatisticsWidget extends StatelessWidget {
                 Icon(
                   Icons.lightbulb_outline,
                   size: 16,
-                  color: Colors.amber[700],
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     recommendation,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.9),
+                    ),
                   ),
                 ),
               ],
@@ -270,26 +316,28 @@ class StorageStatisticsWidget extends StatelessWidget {
     );
   }
 
-  Color _getGradeColor(String grade) {
+  Color _getGradeColor(String grade, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     switch (grade) {
       case 'EF':
-        return Colors.purple;
+      return Colors.purple;
       case 'G':
-        return Colors.blue;
+      return Colors.orange;
       case 'H':
-        return Colors.green;
+      return Colors.red;
       case 'I':
-        return Colors.orange;
+      return Colors.pink;
       case 'JK':
-        return Colors.red;
+      return Colors.blue;
       case 'M1':
-        return Colors.indigo;
+      return Colors.teal;
       case 'S2':
-        return Colors.teal;
+      return Colors.green;
       case 'S3':
-        return Colors.brown;
+      return Colors.lightGreen;
       default:
-        return Colors.grey;
+      return colorScheme.surfaceContainerHighest;
     }
   }
 

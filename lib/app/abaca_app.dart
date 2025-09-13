@@ -36,6 +36,7 @@ import '../domain/usecases/image_storage/get_storage_statistics_usecase.dart';
 import '../domain/usecases/image_storage/export_stored_images_usecase.dart';
 import '../domain/usecases/image_storage/clear_stored_images_usecase.dart';
 import '../services/image_storage_service.dart';
+import '../features/theme/presentation/viewmodels/theme_view_model.dart';
 
 class AbacaApp extends StatefulWidget {
   const AbacaApp({super.key});
@@ -54,6 +55,7 @@ class _AbacaAppState extends State<AbacaApp> {
   late final AdminRepositoryImpl _adminRepository;
   late final AdminViewModel _adminViewModel;
   late final ImageStorageViewModel _imageStorageViewModel;
+  late final ThemeViewModel _themeViewModel;
 
   @override
   void initState() {
@@ -175,6 +177,10 @@ class _AbacaAppState extends State<AbacaApp> {
         exportImagesUseCase: exportStoredImagesUseCase,
         clearStoredImagesUseCase: clearStoredImagesUseCase,
       );
+
+      // Initialize theme view model
+      _themeViewModel = ThemeViewModel();
+      _themeViewModel.initialize();
     } catch (e) {
       // Log initialization error but continue with app startup
       debugPrint('Error initializing dependencies: $e');
@@ -191,20 +197,30 @@ class _AbacaAppState extends State<AbacaApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appTitle,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
-      home: AuthWrapper(
-        authViewModel: _authViewModel,
-        mainAppBuilder: (authViewModel) => ClassificationPageWithAuth(
-          viewModel: _viewModel,
-          authViewModel: authViewModel,
-          historyViewModel: _historyViewModel,
-          adminViewModel: _adminViewModel,
-          imageStorageViewModel: _imageStorageViewModel,
-        ),
-      ),
-      debugShowCheckedModeBanner: false,
+    return AnimatedBuilder(
+      animation: _themeViewModel,
+      builder: (context, child) {
+        return MaterialApp(
+          title: AppConstants.appTitle,
+          theme: _themeViewModel.currentTheme,
+          darkTheme: _themeViewModel.currentTheme,
+          themeMode: _themeViewModel.isDarkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
+          home: AuthWrapper(
+            authViewModel: _authViewModel,
+            mainAppBuilder: (authViewModel) => ClassificationPageWithAuth(
+              viewModel: _viewModel,
+              authViewModel: authViewModel,
+              historyViewModel: _historyViewModel,
+              adminViewModel: _adminViewModel,
+              imageStorageViewModel: _imageStorageViewModel,
+              themeViewModel: _themeViewModel,
+            ),
+          ),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

@@ -60,26 +60,32 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'History',
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -92,13 +98,22 @@ class _HistoryPageState extends State<HistoryPage>
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear_all',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever, size: 20, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Clear All', style: TextStyle(color: Colors.red)),
+                    Icon(
+                      Icons.delete_forever,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Clear All',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -107,9 +122,11 @@ class _HistoryPageState extends State<HistoryPage>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.green,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.green,
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.6),
+          indicatorColor: Theme.of(context).colorScheme.primary,
           tabs: const [
             Tab(text: 'Grade'),
             Tab(text: 'Recent'),
@@ -117,7 +134,11 @@ class _HistoryPageState extends State<HistoryPage>
         ),
       ),
       body: widget.viewModel.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.green))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            )
           : widget.viewModel.error != null
           ? _buildErrorView()
           : TabBarView(
@@ -134,21 +155,30 @@ class _HistoryPageState extends State<HistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 16),
             Text(
               'Error loading history',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               widget.viewModel.error ?? 'Unknown error occurred',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -156,10 +186,6 @@ class _HistoryPageState extends State<HistoryPage>
                 widget.viewModel.clearError();
                 widget.viewModel.loadCompleteHistory();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('Retry'),
             ),
           ],
@@ -245,11 +271,13 @@ class _HistoryPageState extends State<HistoryPage>
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -266,7 +294,7 @@ class _HistoryPageState extends State<HistoryPage>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (stats.length > 3)
@@ -289,16 +317,16 @@ class _HistoryPageState extends State<HistoryPage>
                     children: [
                       Text(
                         _showAllGrades ? 'Show Less' : 'Show All',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.green,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         _showAllGrades ? Icons.expand_less : Icons.expand_more,
                         size: 16,
-                        color: Colors.green,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ],
                   ),
@@ -406,11 +434,17 @@ class _HistoryPageState extends State<HistoryPage>
               ),
               selected: isSelected,
               onSelected: (_) => widget.viewModel.setGradeFilter(grade),
-              selectedColor: Colors.green.withValues(alpha: 0.2),
-              checkmarkColor: Colors.green,
-              backgroundColor: Colors.white,
+              selectedColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.2),
+              checkmarkColor: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               side: BorderSide(
-                color: isSelected ? Colors.green : Colors.grey[300]!,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
           );
@@ -437,11 +471,13 @@ class _HistoryPageState extends State<HistoryPage>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -463,7 +499,7 @@ class _HistoryPageState extends State<HistoryPage>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: (isLowConfidence && !isAdmin)
-                    ? Colors.grey
+                    ? Theme.of(context).colorScheme.outline
                     : _getGradeColor(history.predictedLabel),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -471,8 +507,8 @@ class _HistoryPageState extends State<HistoryPage>
                 (isLowConfidence && !isAdmin)
                     ? 'Cannot be classified'
                     : history.gradeLabel,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -486,14 +522,21 @@ class _HistoryPageState extends State<HistoryPage>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
               ),
           ],
         ),
         subtitle: Text(
           history.friendlyDate,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
         ),
         trailing: PopupMenuButton<String>(
           onSelected: (value) => _handleItemAction(value, history),
@@ -508,13 +551,22 @@ class _HistoryPageState extends State<HistoryPage>
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'delete',
               child: Row(
                 children: [
-                  Icon(Icons.delete, size: 20, color: Colors.red),
-                  SizedBox(width: 12),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
+                  Icon(
+                    Icons.delete,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Delete',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -537,8 +589,14 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: Colors.grey[200],
-      child: Icon(Icons.image, color: Colors.grey[400], size: 30),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: Icon(
+        Icons.image,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        size: 30,
+      ),
     );
   }
 
@@ -549,21 +607,34 @@ class _HistoryPageState extends State<HistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey[400]),
+            Icon(
+              Icons.history,
+              size: 64,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
             const SizedBox(height: 16),
             Text(
               'No Classification History',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.9),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Start classifying some abaca fiber to see your history here.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -629,12 +700,17 @@ class _HistoryPageState extends State<HistoryPage>
                           ? 'All history cleared successfully'
                           : 'Failed to clear history',
                     ),
-                    backgroundColor: success ? Colors.green : Colors.red,
+                    backgroundColor: success
+                        ? Theme.of(context).colorScheme.tertiary
+                        : Theme.of(context).colorScheme.error,
                   ),
                 );
               }
             },
-            child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Clear All',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -672,13 +748,18 @@ class _HistoryPageState extends State<HistoryPage>
                             ? 'History item deleted successfully'
                             : 'Failed to delete history item',
                       ),
-                      backgroundColor: success ? Colors.green : Colors.red,
+                      backgroundColor: success
+                          ? Theme.of(context).colorScheme.tertiary
+                          : Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -703,7 +784,7 @@ class _HistoryPageState extends State<HistoryPage>
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -755,12 +836,17 @@ class _HistoryPageState extends State<HistoryPage>
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
           Expanded(
-            child: Text(value, style: TextStyle(color: Colors.grey[800])),
+            child: Text(
+              value,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
           ),
         ],
       ),

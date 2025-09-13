@@ -22,7 +22,11 @@ class ModelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: isActive ? 4 : 2,
-      color: isActive ? Colors.green.shade50 : null,
+      color: isActive
+          ? (Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : Colors.green.shade50)
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -39,7 +43,12 @@ class ModelCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isActive ? Colors.green.shade700 : null,
+                          color: isActive
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                    ? Theme.of(context).colorScheme.primary
+                                          .withValues(alpha: 0.8)
+                                    : Colors.green.shade700)
+                              : null,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -48,7 +57,10 @@ class ModelCard extends StatelessWidget {
                           model.description!,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -63,7 +75,11 @@ class ModelCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.7)
+                          : Colors.green,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
@@ -80,7 +96,12 @@ class ModelCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Imported: ${_formatDate(model.importedAt)}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -90,7 +111,7 @@ class ModelCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : onSelect,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                       ),
                       child: isLoading
@@ -117,19 +138,25 @@ class ModelCard extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: isLoading ? null : onDelete,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        foregroundColor: Colors.red,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        foregroundColor: Theme.of(context).colorScheme.error,
                       ),
                       child: const Text('Delete'),
                     ),
                   ),
                 if (isActive)
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
                         'Currently Active',
                         style: TextStyle(
-                          color: Colors.green,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.8)
+                              : Colors.green,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

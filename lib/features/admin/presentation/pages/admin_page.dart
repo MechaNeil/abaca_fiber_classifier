@@ -67,7 +67,7 @@ class _AdminPageState extends State<AdminPage>
             child: Text(message, style: const TextStyle(fontSize: 14)),
           ),
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(
           seconds: 8,
@@ -92,7 +92,7 @@ class _AdminPageState extends State<AdminPage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: Theme.of(context).colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -103,12 +103,15 @@ class _AdminPageState extends State<AdminPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Admin Tools',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Keep foregroundColor for icons/actions but explicitly set title color above
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
@@ -139,7 +142,7 @@ class _AdminPageState extends State<AdminPage>
         if (widget.viewModel.isLoadingModels) {
           return const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
             ),
           );
         }
@@ -158,7 +161,10 @@ class _AdminPageState extends State<AdminPage>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.cloud_upload, color: Colors.green),
+                          Icon(
+                            Icons.cloud_upload,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'Import/Update Model',
@@ -172,7 +178,7 @@ class _AdminPageState extends State<AdminPage>
                       const SizedBox(height: 12),
                       const Text(
                         'Import a new TensorFlow Lite model (.tflite) to use for classification. The new model will be saved to the device and can be selected as the active model.',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Color(0xFF757575)),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -208,7 +214,10 @@ class _AdminPageState extends State<AdminPage>
               if (widget.viewModel.currentModel != null) ...[
                 Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.green),
+                    Icon(
+                      Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     const Text(
                       'Current Active Model',
@@ -230,7 +239,10 @@ class _AdminPageState extends State<AdminPage>
               // Available Models Section
               Row(
                 children: [
-                  const Icon(Icons.list, color: Colors.green),
+                  Icon(
+                    Icons.list,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Available Models',
@@ -247,7 +259,7 @@ class _AdminPageState extends State<AdminPage>
                     child: Center(
                       child: Text(
                         'No models available',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Color(0xFF757575)),
                       ),
                     ),
                   ),
@@ -294,7 +306,10 @@ class _AdminPageState extends State<AdminPage>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.download, color: Colors.green),
+                          Icon(
+                            Icons.download,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'Export Comprehensive Data',
@@ -308,7 +323,7 @@ class _AdminPageState extends State<AdminPage>
                       const SizedBox(height: 12),
                       const Text(
                         'Export comprehensive classification data including history, model performance metrics, user activity logs, and database tables in both CSV and JSON formats. Model performance metrics are automatically refreshed before export to ensure up-to-date data. Files will be saved to your Downloads folder if permission is granted, or to app storage as a fallback.',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Color(0xFF757575)),
                       ),
                       const SizedBox(height: 16),
                       AdminButton(
@@ -316,7 +331,9 @@ class _AdminPageState extends State<AdminPage>
                         icon: Icons.file_download,
                         onPressed: widget.viewModel.exportLogs,
                         isLoading: widget.viewModel.isExporting,
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary,
                       ),
                     ],
                   ),
@@ -333,7 +350,7 @@ class _AdminPageState extends State<AdminPage>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.storage, color: Colors.orange),
+                          Icon(Icons.storage, color: Colors.orange),
                           const SizedBox(width: 8),
                           const Text(
                             'Database Management',
@@ -348,7 +365,7 @@ class _AdminPageState extends State<AdminPage>
                       const Text(
                         '⚠️ WARNING: This will permanently delete ALL data including users, classification history, and settings. This action cannot be undone!',
                         style: TextStyle(
-                          color: Colors.red,
+                          color: Color(0xFFD32F2F),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -357,14 +374,14 @@ class _AdminPageState extends State<AdminPage>
                         text: 'Reset Database',
                         icon: Icons.delete_forever,
                         onPressed: _confirmResetDatabase,
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Card(
+              Card(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
                   child: Column(
@@ -372,7 +389,10 @@ class _AdminPageState extends State<AdminPage>
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info, color: Colors.blue),
+                          Icon(
+                            Icons.info,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Available Export Data',
@@ -394,7 +414,7 @@ class _AdminPageState extends State<AdminPage>
                         '• System information and metadata\n'
                         '• Files saved to Downloads folder (with permission)\n'
                         '• Automatic fallback to app storage',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Color(0xFF757575)),
                       ),
                     ],
                   ),
@@ -427,7 +447,9 @@ class _AdminPageState extends State<AdminPage>
               Navigator.of(context).pop();
               widget.viewModel.switchToModel(model);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
             child: const Text('Switch'),
           ),
         ],
@@ -455,7 +477,9 @@ class _AdminPageState extends State<AdminPage>
               Navigator.of(context).pop();
               widget.viewModel.deleteModel(model);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -490,7 +514,9 @@ class _AdminPageState extends State<AdminPage>
               Navigator.of(context).pop();
               await _resetDatabase();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Reset Database'),
           ),
         ],
@@ -503,7 +529,7 @@ class _AdminPageState extends State<AdminPage>
       return const Center(
         child: Text(
           'Image storage is not available',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(fontSize: 16, color: Color(0xFF757575)),
         ),
       );
     }

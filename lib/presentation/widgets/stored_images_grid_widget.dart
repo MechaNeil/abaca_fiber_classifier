@@ -40,21 +40,30 @@ class StoredImagesGridWidget extends StatelessWidget {
             Icon(
               Icons.photo_library_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
             Text(
               'No stored images found',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Images will appear here after classification',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
             ),
             if (onRefresh != null) ...[
               const SizedBox(height: 16),
@@ -108,13 +117,13 @@ class StoredImagesGridWidget extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _getGradeColor(grade),
+                    color: _getGradeColor(grade, context),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     grade,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -123,7 +132,12 @@ class StoredImagesGridWidget extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   '${images.length} images',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
                 ),
                 if (isClearing) ...[
                   const SizedBox(width: 8),
@@ -136,7 +150,7 @@ class StoredImagesGridWidget extends StatelessWidget {
                   Text(
                     'Clearing...',
                     style: TextStyle(
-                      color: Colors.red[600],
+                      color: Theme.of(context).colorScheme.error,
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
                     ),
@@ -177,7 +191,10 @@ class StoredImagesGridWidget extends StatelessWidget {
                     )
                   else
                     IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.red),
+                      icon: Icon(
+                        Icons.clear,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       onPressed: isExporting
                           ? null
                           : () => onClearGrade!(grade),
@@ -226,7 +243,9 @@ class StoredImagesGridWidget extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           children: [
@@ -241,7 +260,9 @@ class StoredImagesGridWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(8),
                 ),
@@ -250,14 +271,20 @@ class StoredImagesGridWidget extends StatelessWidget {
                 children: [
                   Text(
                     image.confidencePercentage,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     image.fileSizeString,
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
@@ -276,7 +303,9 @@ class StoredImagesGridWidget extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
-            color: Colors.grey[200],
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
             child: const Center(
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
@@ -288,43 +317,53 @@ class StoredImagesGridWidget extends StatelessWidget {
             file,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return _buildErrorWidget();
+              return _buildErrorWidget(context);
             },
           );
         } else {
-          return _buildErrorWidget();
+          return _buildErrorWidget(context);
         }
       },
     );
   }
 
-  Widget _buildErrorWidget() {
+  Widget _buildErrorWidget(BuildContext context) {
     return Container(
-      color: Colors.grey[200],
-      child: Icon(Icons.broken_image, color: Colors.grey[400], size: 32),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+      child: Icon(
+        Icons.broken_image,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        size: 32,
+      ),
     );
   }
 
-  Color _getGradeColor(String grade) {
+  Color _getGradeColor(String grade, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     switch (grade) {
       case 'EF':
         return Colors.purple;
       case 'G':
-        return Colors.blue;
-      case 'H':
-        return Colors.green;
-      case 'I':
         return Colors.orange;
-      case 'JK':
+      case 'H':
         return Colors.red;
+      case 'I':
+        return Colors.pink;
+      case 'JK':
+        return Colors.blue;
       case 'M1':
-        return Colors.indigo;
-      case 'S2':
         return Colors.teal;
+      case 'S2':
+        return Colors.green;
       case 'S3':
-        return Colors.brown;
+        return Colors.lightGreen;
+      case 'grade_1': // Maps to G
+        return Colors.orange;
       default:
-        return Colors.grey;
+        return colorScheme.surfaceContainerHighest;
     }
   }
 }

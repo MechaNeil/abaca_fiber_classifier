@@ -63,16 +63,16 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             if (widget.historyViewModel.recentHistory.isNotEmpty)
               TextButton(
                 onPressed: () => _navigateToHistoryPage(),
-                child: const Text(
+                child: Text(
                   'View All',
                   style: TextStyle(
-                    color: Colors.green,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -90,8 +90,11 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
   Widget _buildRecentContent() {
     if (widget.historyViewModel.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.green, strokeWidth: 2),
+      return Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+          strokeWidth: 2,
+        ),
       );
     }
 
@@ -129,10 +132,12 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -174,7 +179,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                       ),
                       decoration: BoxDecoration(
                         color: (isLowConfidence && !isAdmin)
-                            ? Colors.grey[600]
+                            ? Theme.of(context).colorScheme.outline
                             : _getGradeColor(history.predictedLabel),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -182,8 +187,8 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                         (isLowConfidence && !isAdmin)
                             ? 'Unclassified'
                             : _getShortGradeName(history.predictedLabel),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -205,7 +210,8 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.8),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -216,7 +222,9 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                               history.shortFormattedDate,
                               style: TextStyle(
                                 fontSize: 8,
-                                color: Colors.grey[500],
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -248,8 +256,14 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: Colors.grey[200],
-      child: Icon(Icons.image, color: Colors.grey[400], size: 30),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: Icon(
+        Icons.image,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        size: 30,
+      ),
     );
   }
 
@@ -258,22 +272,42 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.grey[100],
-        border: Border.all(color: Colors.grey[200]!),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 32, color: Colors.grey[400]),
+          Icon(
+            Icons.history,
+            size: 32,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 8),
           Text(
             'No classifications today',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Start classifying to see today\'s results',
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -286,17 +320,28 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.red[50],
-        border: Border.all(color: Colors.red[200]!),
+        color: Theme.of(
+          context,
+        ).colorScheme.errorContainer.withValues(alpha: 0.3),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 32, color: Colors.red[400]),
+          Icon(
+            Icons.error_outline,
+            size: 32,
+            color: Theme.of(context).colorScheme.error,
+          ),
           const SizedBox(height: 8),
           Text(
             'Failed to load history',
-            style: TextStyle(fontSize: 12, color: Colors.red[700]),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
           ),
           TextButton(
             onPressed: () => widget.historyViewModel.loadTodayHistory(),
@@ -344,7 +389,7 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -402,12 +447,17 @@ class _RecentHistoryWidgetState extends State<RecentHistoryWidget> {
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),
           Expanded(
-            child: Text(value, style: TextStyle(color: Colors.grey[800])),
+            child: Text(
+              value,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
           ),
         ],
       ),

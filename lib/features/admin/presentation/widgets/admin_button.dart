@@ -55,8 +55,11 @@ class AdminButton extends StatelessWidget {
       return OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: textColor ?? Colors.green,
-          side: BorderSide(color: backgroundColor ?? Colors.green, width: 2),
+          foregroundColor: textColor ?? Theme.of(context).colorScheme.primary,
+          side: BorderSide(
+            color: backgroundColor ?? Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -67,7 +70,8 @@ class AdminButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? Colors.green,
+        backgroundColor:
+            backgroundColor ?? Theme.of(context).colorScheme.primary,
         foregroundColor: textColor ?? Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
